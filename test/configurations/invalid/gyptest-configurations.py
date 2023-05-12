@@ -8,29 +8,29 @@
 Verifies build of an executable in three different configurations.
 """
 
-import TestGyp
 
-# Keys that do not belong inside a configuration dictionary.
-invalid_configuration_keys = [
-  'actions',
-  'all_dependent_settings',
-  'configurations',
-  'dependencies',
-  'direct_dependent_settings',
-  'libraries',
-  'link_settings',
-  'sources',
-  'standalone_static_library',
-  'target_name',
-  'type',
-]
+import TestGyp
 
 test = TestGyp.TestGyp()
 
+invalid_configuration_keys = [
+    'actions',
+    'all_dependent_settings',
+    'configurations',
+    'dependencies',
+    'direct_dependent_settings',
+    'libraries',
+    'link_settings',
+    'sources',
+    'standalone_static_library',
+    'target_name',
+    'type',
+]
 for test_key in invalid_configuration_keys:
-  test.run_gyp('%s.gyp' % test_key, status=1, stderr=None)
-  expect = ['%s not allowed in the Debug configuration, found in target '
-            '%s.gyp:configurations#target' % (test_key, test_key)]
+  test.run_gyp(f'{test_key}.gyp', status=1, stderr=None)
+  expect = [
+      f'{test_key} not allowed in the Debug configuration, found in target {test_key}.gyp:configurations#target'
+  ]
   test.must_contain_all_lines(test.stderr(), expect)
 
 test.pass_test()

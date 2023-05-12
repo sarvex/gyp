@@ -5,14 +5,10 @@
 
 import sys
 
-fh = open(sys.argv[1], 'w')
+with open(sys.argv[1], 'w') as fh:
+  filenames = sys.argv[2:]
 
-filenames = sys.argv[2:]
-
-for filename in filenames:
-  subfile = open(filename)
-  data = subfile.read()
-  subfile.close()
-  fh.write(data)
-
-fh.close()
+  for filename in filenames:
+    with open(filename) as subfile:
+      data = subfile.read()
+    fh.write(data)

@@ -272,18 +272,13 @@ class TestCommon(TestCmd):
         """
         if find is None:
             find = lambda o, l: string.find(o, l) != -1
-        missing = []
-        for line in lines:
-            if not find(output, line):
-                missing.append(line)
-
-        if missing:
+        if missing := [line for line in lines if not find(output, line)]:
             if title is None:
                 title = 'output'
             sys.stdout.write("Missing expected lines from %s:\n" % title)
             for line in missing:
-                sys.stdout.write('    ' + repr(line) + '\n')
-            sys.stdout.write(self.banner(title + ' '))
+                sys.stdout.write(f'    {repr(line)}' + '\n')
+            sys.stdout.write(self.banner(f'{title} '))
             sys.stdout.write(output)
             self.fail_test()
 
@@ -308,8 +303,8 @@ class TestCommon(TestCmd):
             title = 'output'
         sys.stdout.write("Missing any expected line from %s:\n" % title)
         for line in lines:
-            sys.stdout.write('    ' + repr(line) + '\n')
-        sys.stdout.write(self.banner(title + ' '))
+            sys.stdout.write(f'    {repr(line)}' + '\n')
+        sys.stdout.write(self.banner(f'{title} '))
         sys.stdout.write(output)
         self.fail_test()
 
@@ -371,18 +366,13 @@ class TestCommon(TestCmd):
         """
         if find is None:
             find = lambda o, l: string.find(o, l) != -1
-        unexpected = []
-        for line in lines:
-            if find(output, line):
-                unexpected.append(line)
-
-        if unexpected:
+        if unexpected := [line for line in lines if find(output, line)]:
             if title is None:
                 title = 'output'
             sys.stdout.write("Unexpected lines in %s:\n" % title)
             for line in unexpected:
-                sys.stdout.write('    ' + repr(line) + '\n')
-            sys.stdout.write(self.banner(title + ' '))
+                sys.stdout.write(f'    {repr(line)}' + '\n')
+            sys.stdout.write(self.banner(f'{title} '))
             sys.stdout.write(output)
             self.fail_test()
 
@@ -533,10 +523,7 @@ class TestCommon(TestCmd):
         output is empty (stderr = "").
         """
         if options:
-            if arguments is None:
-                arguments = options
-            else:
-                arguments = options + " " + arguments
+            arguments = options if arguments is None else f"{options} {arguments}"
         kw['arguments'] = arguments
         match = kw.pop('match', self.match)
         apply(TestCmd.run, [self], kw)

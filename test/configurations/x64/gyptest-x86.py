@@ -8,6 +8,7 @@
 Verifies build of an executable in three different configurations.
 """
 
+
 import TestGyp
 
 import sys
@@ -24,7 +25,7 @@ test.build('configurations.gyp', test.ALL)
 for machine, suffix in [('14C machine (x86)', ''),
                         ('8664 machine (x64)', '64')]:
   output = test.run_dumpbin(
-      '/headers', test.built_file_path('configurations%s.exe' % suffix))
+      '/headers', test.built_file_path(f'configurations{suffix}.exe'))
   if machine not in output:
     test.fail_test()
 

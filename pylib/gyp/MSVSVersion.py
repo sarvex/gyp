@@ -60,7 +60,7 @@ class VisualStudioVersion(object):
 
   def ProjectExtension(self):
     """Returns the file extension for the project."""
-    return self.uses_vcxproj and '.vcxproj' or '.vcproj'
+    return '.vcxproj' if self.uses_vcxproj else '.vcproj'
 
   def Path(self):
     """Returns the path to Visual Studio installation."""
@@ -87,7 +87,7 @@ class VisualStudioVersion(object):
     sdk_dir = os.environ.get('WindowsSDKDir', '')
     setup_path = JoinPath(sdk_dir, 'Bin', 'SetEnv.Cmd')
     if self.sdk_based and sdk_dir and os.path.exists(setup_path):
-      return [setup_path, '/' + target_arch]
+      return [setup_path, f'/{target_arch}']
 
     is_host_arch_x64 = (
       os.environ.get('PROCESSOR_ARCHITECTURE') == 'AMD64' or
@@ -103,8 +103,8 @@ class VisualStudioVersion(object):
       host_arch = 'amd64' if is_host_arch_x64 else 'x86'
       msvc_target_arch = 'amd64' if target_arch == 'x64' else 'x86'
       arg = host_arch
-      if host_arch != msvc_target_arch:
-        arg += '_' + msvc_target_arch
+      if arg != msvc_target_arch:
+        arg += f'_{msvc_target_arch}'
 
       return [script_path, arg]
 
@@ -112,7 +112,7 @@ class VisualStudioVersion(object):
     vcvarsall = JoinPath(self.path, 'VC', 'vcvarsall.bat')
     if target_arch == 'x86':
       if self.short_name >= '2013' and self.short_name[-1] != 'e' and \
-         is_host_arch_x64:
+           is_host_arch_x64:
         # VS2013 and later, non-Express have a x64-x86 cross that we want
         # to prefer.
         return [vcvarsall, 'amd64_x86']
@@ -133,8 +133,8 @@ class VisualStudioVersion(object):
     script_data = self._SetupScriptInternal(target_arch)
     script_path = script_data[0]
     if not os.path.exists(script_path):
-      raise Exception('%s is missing - make sure VC++ tools are installed.' %
-                      script_path)
+      raise Exception(
+          f'{script_path} is missing - make sure VC++ tools are installed.')
     return script_data
 
 
@@ -164,9 +164,7 @@ def _RegistryQueryBase(sysdir, key, value):
   # Note that the error text may be in [1] in some cases
   text = p.communicate()[0]
   # Check return code from reg.exe; officially 0==success and 1==error
-  if p.returncode:
-    return None
-  return text
+  return None if p.returncode else text
 
 
 def _RegistryQuery(key, value=None):
@@ -242,9 +240,7 @@ def _RegistryGetValue(key, value):
     return None
   # Extract value.
   match = re.search(r'REG_\w+\s+([^\r]+)\r\n', text)
-  if not match:
-    return None
-  return match.group(1)
+  return None if not match else match[1]
 
 
 def _CreateVersion(name, path, sdk_based=False):
@@ -407,8 +403,8 @@ def _DetectVisualStudioVersions(versions_to_check, force_express):
             r'HKLM\Software\Wow6432Node\Microsoft\VisualStudio\%s' % version,
             r'HKLM\Software\Microsoft\VCExpress\%s' % version,
             r'HKLM\Software\Wow6432Node\Microsoft\VCExpress\%s' % version]
-    for index in range(len(keys)):
-      path = _RegistryGetValue(keys[index], 'InstallDir')
+    for key in keys:
+      path = _RegistryGetValue(key, 'InstallDir')
       if not path:
         continue
       path = _ConvertToCygpath(path)
@@ -419,28 +415,32 @@ def _DetectVisualStudioVersions(versions_to_check, force_express):
         # Add this one.
         versions.append(_CreateVersion(version_to_year[version],
             os.path.join(path, '..', '..')))
-      # Check for express.
       elif glob.glob(express_path):
         # Add this one.
-        versions.append(_CreateVersion(version_to_year[version] + 'e',
-            os.path.join(path, '..', '..')))
+        versions.append(
+            _CreateVersion(f'{version_to_year[version]}e',
+                           os.path.join(path, '..', '..')))
 
     # The old method above does not work when only SDK is installed.
     keys = [r'HKLM\Software\Microsoft\VisualStudio\SxS\VC7',
             r'HKLM\Software\Wow6432Node\Microsoft\VisualStudio\SxS\VC7',
             r'HKLM\Software\Microsoft\VisualStudio\SxS\VS7',
             r'HKLM\Software\Wow6432Node\Microsoft\VisualStudio\SxS\VS7']
-    for index in range(len(keys)):
-      path = _RegistryGetValue(keys[index], version)
+    for key_ in keys:
+      path = _RegistryGetValue(key_, version)
       if not path:
         continue
       path = _ConvertToCygpath(path)
       if version == '15.0':
-          if os.path.exists(path):
-              versions.append(_CreateVersion('2017', path))
+        if os.path.exists(path):
+            versions.append(_CreateVersion('2017', path))
       elif version != '14.0':  # There is no Express edition for 2015.
-        versions.append(_CreateVersion(version_to_year[version] + 'e',
-            os.path.join(path, '..'), sdk_based=True))
+        versions.append(
+            _CreateVersion(
+                f'{version_to_year[version]}e',
+                os.path.join(path, '..'),
+                sdk_based=True,
+            ))
 
   return versions
 
@@ -471,13 +471,12 @@ def SelectVisualStudioVersion(version='auto', allow_fallback=True):
     '2015': ('14.0',),
     '2017': ('15.0',),
   }
-  override_path = os.environ.get('GYP_MSVS_OVERRIDE_PATH')
-  if override_path:
-    msvs_version = os.environ.get('GYP_MSVS_VERSION')
-    if not msvs_version:
+  if override_path := os.environ.get('GYP_MSVS_OVERRIDE_PATH'):
+    if msvs_version := os.environ.get('GYP_MSVS_VERSION'):
+      return _CreateVersion(msvs_version, override_path, sdk_based=True)
+    else:
       raise ValueError('GYP_MSVS_OVERRIDE_PATH requires GYP_MSVS_VERSION to be '
                        'set to a particular version (e.g. 2010e).')
-    return _CreateVersion(msvs_version, override_path, sdk_based=True)
   version = str(version)
   versions = _DetectVisualStudioVersions(version_map[version], 'e' in version)
   if not versions:

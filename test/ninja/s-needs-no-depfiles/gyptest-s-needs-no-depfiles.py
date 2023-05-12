@@ -10,6 +10,7 @@ were used for them (since clang & gcc ignore -MMD when building .s->.o on
 linux).
 """
 
+
 import os
 import sys
 import TestCommon
@@ -19,7 +20,7 @@ import TestGyp
 # a ninja-specific test.
 test = TestGyp.TestGyp(formats=['ninja'])
 
-if sys.platform == 'win32' or sys.platform == 'win64':
+if sys.platform in ['win32', 'win64']:
   # This test is about clang/gcc vs. depfiles; VS gets a pass.
   test.pass_test()
   sys.exit(0)

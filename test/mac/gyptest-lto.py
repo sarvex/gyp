@@ -26,15 +26,21 @@ if sys.platform == 'darwin':
   def ObjPath(srcpath, target):
     # TODO: Move this into TestGyp if it's needed elsewhere.
     if test.format == 'xcode':
-      return os.path.join(CHDIR, 'build', 'test.build', 'Default',
-                          target + '.build', 'Objects-normal', 'x86_64',
-                          srcpath + '.o')
-    elif 'ninja' in test.format:  # ninja, xcode-ninja
-      return os.path.join(CHDIR, 'out', 'Default', 'obj',
-                          target + '.' + srcpath + '.o')
+      return os.path.join(
+          CHDIR,
+          'build',
+          'test.build',
+          'Default',
+          f'{target}.build',
+          'Objects-normal',
+          'x86_64',
+          f'{srcpath}.o',
+      )
+    elif 'ninja' in test.format:# ninja, xcode-ninja
+      return os.path.join(CHDIR, 'out', 'Default', 'obj', f'{target}.{srcpath}.o')
     elif test.format == 'make':
-      return os.path.join(CHDIR, 'out', 'Default', 'obj.target',
-                          target, srcpath + '.o')
+      return os.path.join(CHDIR, 'out', 'Default', 'obj.target', target,
+                          f'{srcpath}.o')
 
   def ObjType(p, t_expected):
     r = re.compile(r'nsyms\s+(\d+)')
@@ -45,7 +51,7 @@ if sys.platform == 'darwin':
     elif ': LLVM bitcode' in o:
       objtype = 'llvm'
     if objtype != t_expected:
-      print('Expected %s, got %s' % (t_expected, objtype))
+      print(f'Expected {t_expected}, got {objtype}')
       test.fail_test()
 
   ObjType(ObjPath('cfile', 'lto'), 'llvm')

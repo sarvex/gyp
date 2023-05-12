@@ -26,7 +26,7 @@ test.run_gyp('action.gyp', chdir='src')
 test.relocate('src', TESTDIR)
 
 def build_and_check(content):
-  test.write(TESTDIR + '/input.txt', content)
+  test.write(f'{TESTDIR}/input.txt', content)
   test.build('action.gyp', 'upper', chdir=TESTDIR)
   test.built_file_must_match('result.txt', content, chdir=TESTDIR)
 

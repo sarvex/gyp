@@ -38,8 +38,7 @@ def ls(path):
   '''Returns a list of all files in a directory, relative to the directory.'''
   result = []
   for dirpath, _, files in os.walk(path):
-    for f in files:
-      result.append(os.path.join(dirpath, f)[len(path) + 1:])
+    result.extend(os.path.join(dirpath, f)[len(path) + 1:] for f in files)
   return result
 
 
@@ -74,7 +73,7 @@ if sys.platform == 'darwin':
     expected = ''
     if TestMac.Xcode.Version() >= '0500':
       version = TestMac.Xcode.SDKVersion()
-      expected = 'macosx' + version
+      expected = f'macosx{version}'
     ExpectEq(expected, plist['DTSDKName'])
     sdkbuild = TestMac.Xcode.SDKBuild()
     if not sdkbuild:

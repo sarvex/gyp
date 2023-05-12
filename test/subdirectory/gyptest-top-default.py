@@ -18,6 +18,7 @@ in a build directory relative to the "solution"--that is, the entry-point
 from which you built the entire tree.
 """
 
+
 import TestGyp
 
 test = TestGyp.TestGyp()
@@ -32,10 +33,7 @@ test.run_built_executable('prog1',
                           stdout="Hello from prog1.c\n",
                           chdir='relocate/src')
 
-if test.format == 'xcode':
-  chdir = 'relocate/src/subdir'
-else:
-  chdir = 'relocate/src'
+chdir = 'relocate/src/subdir' if test.format == 'xcode' else 'relocate/src'
 test.run_built_executable('prog2',
                           chdir=chdir,
                           stdout="Hello from prog2.c\n")

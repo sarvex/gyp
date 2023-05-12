@@ -8,6 +8,7 @@
 Verifies that targets have independent INTERMEDIATE_DIRs.
 """
 
+
 import TestGyp
 
 test = TestGyp.TestGyp()
@@ -36,7 +37,7 @@ test.must_contain(intermediate_file2, 'target2')
 
 shared_intermediate_file2 = test.read('src/shared_outfile.txt')
 if shared_intermediate_file1 != shared_intermediate_file2:
-  test.fail_test(shared_intermediate_file1 + ' != ' + shared_intermediate_file2)
+  test.fail_test(f'{shared_intermediate_file1} != {shared_intermediate_file2}')
 
 test.must_contain(shared_intermediate_file1, 'shared_target2')
 test.must_contain(shared_intermediate_file2, 'shared_target2')

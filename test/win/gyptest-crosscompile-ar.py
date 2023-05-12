@@ -8,6 +8,7 @@
 Verifies that ar_host is set correctly when enabling cross-compile on windows.
 """
 
+
 import TestGyp
 
 import sys
@@ -23,7 +24,7 @@ if sys.platform == 'win32':
     test.run_gyp('use_host_ar.gyp', chdir=CHDIR)
   finally:
     os.environ.clear()
-    os.environ.update(oldenv)
+    os.environ |= oldenv
 
   test.build('use_host_ar.gyp', test.ALL, chdir=CHDIR)
   test.pass_test()

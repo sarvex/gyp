@@ -6,6 +6,5 @@
 
 import sys
 
-f = open(sys.argv[1], 'w+')
-f.write('Hello from touch.py\n')
-f.close()
+with open(sys.argv[1], 'w+') as f:
+    f.write('Hello from touch.py\n')

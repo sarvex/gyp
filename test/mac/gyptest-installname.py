@@ -34,7 +34,7 @@ if sys.platform == 'darwin':
     assert not proc.returncode
     m = r.search(o)
     assert m
-    return m.group(1)
+    return m[1]
 
   if (GetInstallname('libdefault_installname.dylib') !=
       '/usr/local/lib/libdefault_installname.dylib'):

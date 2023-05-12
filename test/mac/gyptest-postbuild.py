@@ -8,6 +8,7 @@
 Verifies that postbuild steps work.
 """
 
+
 import TestGyp
 
 import sys
@@ -20,11 +21,7 @@ if sys.platform == 'darwin':
   test.build('test.gyp', test.ALL, chdir='postbuilds')
 
   # See comment in test/subdirectory/gyptest-subdir-default.py
-  if test.format == 'xcode':
-    chdir = 'postbuilds/subdirectory'
-  else:
-    chdir = 'postbuilds'
-
+  chdir = 'postbuilds/subdirectory' if test.format == 'xcode' else 'postbuilds'
   # Created by the postbuild scripts
   test.built_file_must_exist('el.a_touch',
                              type=test.STATIC_LIB,

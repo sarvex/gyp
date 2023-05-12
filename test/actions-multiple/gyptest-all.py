@@ -8,6 +8,7 @@
 Verifies two actions can be attached to the same input files.
 """
 
+
 import sys
 
 import TestGyp
@@ -35,10 +36,8 @@ if test.format in ['make', 'ninja']:
   if test.format == 'make':
     target = 'multi2.txt'
   elif test.format == 'ninja':
-    if sys.platform in ['win32', 'cygwin']:
-      target = '..\\..\\multi2.txt'
-    else:
-      target = '../../multi2.txt'
+    target = ('..\\..\\multi2.txt'
+              if sys.platform in ['win32', 'cygwin'] else '../../multi2.txt')
   else:
     assert False
   test.build('actions.gyp', chdir='relocate/src', target=target)

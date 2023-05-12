@@ -8,6 +8,7 @@
 Verifies that device and simulator bundles are built correctly.
 """
 
+
 import TestGyp
 import TestMac
 
@@ -52,7 +53,7 @@ if sys.platform == 'darwin':
         kwds['arguments'].extend(['-arch', archs[0]])
 
     test.set_configuration(configuration)
-    filename = '%s.app/%s' % (target, target)
+    filename = f'{target}.app/{target}'
     test.build('test-archs.gyp', target, chdir='app-bundle', **kwds)
     result_file = test.built_file_path(filename, chdir='app-bundle')
 

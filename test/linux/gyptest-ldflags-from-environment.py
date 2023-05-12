@@ -34,7 +34,7 @@ if sys.platform.startswith('linux'):
     proc = subprocess.Popen(['readelf', '-l', p], stdout=subprocess.PIPE)
     o = proc.communicate()[0]
     assert not proc.returncode
-    return r.search(o).group(1)
+    return r.search(o)[1]
 
   if GetDynamicLinker('ldflags') != '/target':
     test.fail_test()

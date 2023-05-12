@@ -6,8 +6,7 @@
 
 import sys
 
-f = open(sys.argv[1], 'wb')
-f.write('int main() {\n')
-f.write('  return 0;\n')
-f.write('}\n')
-f.close()
+with open(sys.argv[1], 'wb') as f:
+    f.write('int main() {\n')
+    f.write('  return 0;\n')
+    f.write('}\n')

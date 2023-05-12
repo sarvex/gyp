@@ -54,10 +54,12 @@ def TestTargetOverideSharedLib():
   expected = ['my_cc.py', 'my_cxx.py', 'FOO']
 
   # Check that CC, CXX, NM, READELF, set target compiler
-  env = {'CC': 'python %s/my_cc.py FOO' % here,
-         'CXX': 'python %s/my_cxx.py FOO' % here,
-         'NM': 'python %s/my_nm.py' % here,
-         'READELF': 'python %s/my_readelf.py' % here}
+  env = {
+      'CC': f'python {here}/my_cc.py FOO',
+      'CXX': f'python {here}/my_cxx.py FOO',
+      'NM': f'python {here}/my_nm.py',
+      'READELF': f'python {here}/my_readelf.py',
+  }
 
   with TestGyp.LocalEnv(env):
     CheckCompiler(test, 'compiler-shared-lib.gyp', expected, True)

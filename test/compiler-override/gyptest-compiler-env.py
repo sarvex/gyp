@@ -45,14 +45,14 @@ def TestTargetOveride():
   # Check that CC, CXX and LD set target compiler
   oldenv = os.environ.copy()
   try:
-    os.environ['CC'] = 'python %s/my_cc.py FOO' % here
-    os.environ['CXX'] = 'python %s/my_cxx.py FOO' % here
-    os.environ['LINK'] = 'python %s/my_ld.py FOO_LINK' % here
+    os.environ['CC'] = f'python {here}/my_cc.py FOO'
+    os.environ['CXX'] = f'python {here}/my_cxx.py FOO'
+    os.environ['LINK'] = f'python {here}/my_ld.py FOO_LINK'
 
     CheckCompiler(test, 'compiler-exe.gyp', expected, True)
   finally:
     os.environ.clear()
-    os.environ.update(oldenv)
+    os.environ |= oldenv
 
   # Run the same tests once the eviron has been restored.  The
   # generated should have embedded all the settings in the
@@ -64,15 +64,15 @@ def TestTargetOverideCompilerOnly():
   # Same test again but with that CC, CXX and not LD
   oldenv = os.environ.copy()
   try:
-    os.environ['CC'] = 'python %s/my_cc.py FOO' % here
-    os.environ['CXX'] = 'python %s/my_cxx.py FOO' % here
+    os.environ['CC'] = f'python {here}/my_cc.py FOO'
+    os.environ['CXX'] = f'python {here}/my_cxx.py FOO'
 
     CheckCompiler(test, 'compiler-exe.gyp',
                   ['my_cc.py', 'my_cxx.py', 'FOO'],
                   True)
   finally:
     os.environ.clear()
-    os.environ.update(oldenv)
+    os.environ |= oldenv
 
   # Run the same tests once the eviron has been restored.  The
   # generated should have embedded all the settings in the
@@ -90,13 +90,13 @@ def TestHostOveride():
   # Check that CC_host sets host compilee
   oldenv = os.environ.copy()
   try:
-    os.environ['CC_host'] = 'python %s/my_cc.py HOST' % here
-    os.environ['CXX_host'] = 'python %s/my_cxx.py HOST' % here
-    os.environ['LINK_host'] = 'python %s/my_ld.py HOST_LINK' % here
+    os.environ['CC_host'] = f'python {here}/my_cc.py HOST'
+    os.environ['CXX_host'] = f'python {here}/my_cxx.py HOST'
+    os.environ['LINK_host'] = f'python {here}/my_ld.py HOST_LINK'
     CheckCompiler(test, 'compiler-host.gyp', expected, True)
   finally:
     os.environ.clear()
-    os.environ.update(oldenv)
+    os.environ |= oldenv
 
   # Run the same tests once the eviron has been restored.  The
   # generated should have embedded all the settings in the

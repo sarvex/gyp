@@ -29,7 +29,7 @@ subprocess.call(['pgomgr', '/merge', options.pgd])
 pgd_file = os.path.abspath(options.pgd)
 pgd_dir = os.path.dirname(pgd_file)
 (pgd_basename, _) = os.path.splitext(os.path.basename(pgd_file))
-pgc_filepattern = os.path.join(pgd_dir, '%s!*.pgc' % pgd_basename)
+pgc_filepattern = os.path.join(pgd_dir, f'{pgd_basename}!*.pgc')
 pgc_files= glob.glob(pgc_filepattern)
 for pgc_file in pgc_files:
   os.unlink(pgc_file)

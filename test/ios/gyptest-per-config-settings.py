@@ -62,9 +62,7 @@ def ParseEntitlements(data):
   if len(data) < 8:
     return None
   magic, length = struct.unpack('>II', data[:8])
-  if magic != 0xfade7171 or length != len(data):
-    return None
-  return data[8:]
+  return None if magic != 0xfade7171 or length != len(data) else data[8:]
 
 def GetXcodeVersionValue(type):
   args = ['xcodebuild', '-version', '-sdk', 'iphoneos', type]

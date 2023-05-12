@@ -8,6 +8,7 @@
 Tests things related to ARCHS.
 """
 
+
 import TestGyp
 import TestMac
 
@@ -23,10 +24,7 @@ if sys.platform == 'darwin':
   result_file = test.built_file_path('Test', chdir='archs')
   test.must_exist(result_file)
 
-  if TestMac.Xcode.Version() >= '0500':
-    expected_type = ['x86_64']
-  else:
-    expected_type = ['i386']
+  expected_type = ['x86_64'] if TestMac.Xcode.Version() >= '0500' else ['i386']
   TestMac.CheckFileType(test, result_file, expected_type)
 
   test.run_gyp('test-valid-archs.gyp', chdir='archs')
@@ -78,8 +76,8 @@ if sys.platform == 'darwin':
     test.must_exist(result_file)
     TestMac.CheckFileType(test, result_file, ['i386', 'x86_64'])
     # Check that symbol "_x" made it into both versions of the binary:
-    if not all(['D _x' in subprocess.check_output(
-        ['nm', '-arch', arch, result_file]) for arch in ['i386', 'x86_64']]):
+    if any('D _x' not in subprocess.check_output(
+        ['nm', '-arch', arch, result_file]) for arch in ['i386', 'x86_64']):
       # This can only flakily fail, due to process ordering issues. If this
       # does fail flakily, then something's broken, it's not the test at fault.
       test.fail_test()

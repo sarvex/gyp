@@ -269,8 +269,8 @@ else:
         return type(e) is types.StringType or isinstance(e, UserString)
 
 tempfile.template = 'testcmd.'
-if os.name in ('posix', 'nt'):
-    tempfile.template = 'testcmd.' + str(os.getpid()) + '.'
+if os.name in {'posix', 'nt'}:
+    tempfile.template = f'testcmd.{os.getpid()}.'
 else:
     tempfile.template = 'testcmd.'
 
@@ -306,10 +306,10 @@ try:
     zip
 except NameError:
     def zip(*lists):
-        result = []
-        for i in xrange(min(map(len, lists))):
-            result.append(tuple(map(lambda l, i=i: l[i], lists)))
-        return result
+        return [
+            tuple(map(lambda l, i=i: l[i], lists))
+            for i in xrange(min(map(len, lists)))
+        ]
 
 class Collector:
     def __init__(self, top):
@@ -327,10 +327,7 @@ def _caller(tblist, skip):
         arr = [(file, line, name, text)] + arr
     atfrom = "at"
     for file, line, name, text in arr[skip:]:
-        if name in ("?", "<module>"):
-            name = ""
-        else:
-            name = " (" + name + ")"
+        name = "" if name in ("?", "<module>") else f" ({name})"
         string = string + ("%s line %d of %s%s\n" % (atfrom, line, file, name))
         atfrom = "\tfrom"
     return string
@@ -344,21 +341,21 @@ def fail_test(self = None, condition = 1, function = None, skip = 0):
     """
     if not condition:
         return
-    if not function is None:
+    if function is not None:
         function()
     of = ""
     desc = ""
     sep = " "
-    if not self is None:
+    if self is not None:
         if self.program:
-            of = " of " + self.program
+            of = f" of {self.program}"
             sep = "\n\t"
         if self.description:
-            desc = " [" + self.description + "]"
+            desc = f" [{self.description}]"
             sep = "\n\t"
 
     at = _caller(traceback.extract_stack(), skip)
-    sys.stderr.write("FAILED test" + of + desc + sep + at)
+    sys.stderr.write(f"FAILED test{of}{desc}{sep}{at}")
 
     sys.exit(1)
 
@@ -371,22 +368,22 @@ def no_result(self = None, condition = 1, function = None, skip = 0):
     """
     if not condition:
         return
-    if not function is None:
+    if function is not None:
         function()
     of = ""
     desc = ""
     sep = " "
-    if not self is None:
+    if self is not None:
         if self.program:
-            of = " of " + self.program
+            of = f" of {self.program}"
             sep = "\n\t"
         if self.description:
-            desc = " [" + self.description + "]"
+            desc = f" [{self.description}]"
             sep = "\n\t"
 
     if os.environ.get('TESTCMD_DEBUG_SKIPS'):
         at = _caller(traceback.extract_stack(), skip)
-        sys.stderr.write("NO RESULT for test" + of + desc + sep + at)
+        sys.stderr.write(f"NO RESULT for test{of}{desc}{sep}{at}")
     else:
         sys.stderr.write("NO RESULT\n")
 
@@ -401,7 +398,7 @@ def pass_test(self = None, condition = 1, function = None):
     """
     if not condition:
         return
-    if not function is None:
+    if function is not None:
         function()
     sys.stderr.write("PASSED\n")
     sys.exit(0)
@@ -470,20 +467,21 @@ else:
         """
         sm = difflib.SequenceMatcher(None, a, b)
         def comma(x1, x2):
-            return x1+1 == x2 and str(x2) or '%s,%s' % (x1+1, x2)
+            return x1+1 == x2 and str(x2) or f'{x1 + 1},{x2}'
+
         result = []
         for op, a1, a2, b1, b2 in sm.get_opcodes():
             if op == 'delete':
                 result.append("%sd%d" % (comma(a1, a2), b1))
-                result.extend(map(lambda l: '< ' + l, a[a1:a2]))
+                result.extend(map(lambda l: f'< {l}', a[a1:a2]))
             elif op == 'insert':
                 result.append("%da%s" % (a1, comma(b1, b2)))
-                result.extend(map(lambda l: '> ' + l, b[b1:b2]))
+                result.extend(map(lambda l: f'> {l}', b[b1:b2]))
             elif op == 'replace':
-                result.append("%sc%s" % (comma(a1, a2), comma(b1, b2)))
-                result.extend(map(lambda l: '< ' + l, a[a1:a2]))
+                result.append(f"{comma(a1, a2)}c{comma(b1, b2)}")
+                result.extend(map(lambda l: f'< {l}', a[a1:a2]))
                 result.append('---')
-                result.extend(map(lambda l: '> ' + l, b[b1:b2]))
+                result.extend(map(lambda l: f'> {l}', b[b1:b2]))
         return result
 
 def diff_re(a, b, fromfile='', tofile='',
@@ -594,8 +592,8 @@ except ImportError:
             universal_newlines = 1
             def __init__(self, command, **kw):
                 if sys.platform == 'win32' and command[0] == '"':
-                    command = '"' + command + '"'
-                (stdin, stdout, stderr) = os.popen3(' ' + command)
+                    command = f'"{command}"'
+                (stdin, stdout, stderr) = os.popen3(f' {command}')
                 self.stdin = stdin
                 self.stdout = stdout
                 self.stderr = stderr
@@ -787,27 +785,19 @@ class Popen(subprocess.Popen):
                     return ''
 
                 r = conn.read(maxsize)
-                if not r:
-                    return self._close(which)
-
-                #if self.universal_newlines:
-                #    r = self._translate_newlines(r)
-                return r
+                return self._close(which) if not r else r
             finally:
-                if not conn.closed and not flags is None:
+                if not conn.closed and flags is not None:
                     fcntl.fcntl(conn, fcntl.F_SETFL, flags)
 
 disconnect_message = "Other end disconnected!"
 
 def recv_some(p, t=.1, e=1, tr=5, stderr=0):
-    if tr < 1:
-        tr = 1
+    tr = max(tr, 1)
     x = time.time()+t
     y = []
     r = ''
-    pr = p.recv
-    if stderr:
-        pr = p.recv_err
+    pr = p.recv_err if stderr else p.recv
     while time.time() < x or r:
         r = pr()
         if r is None:
@@ -865,10 +855,7 @@ class TestCmd(object):
         self.verbose_set(verbose)
         self.combine = combine
         self.universal_newlines = universal_newlines
-        if match is not None:
-            self.match_function = match
-        else:
-            self.match_function = match_re
+        self.match_function = match if match is not None else match_re
         if diff is not None:
             self.diff_function = diff
         else:
@@ -882,7 +869,7 @@ class TestCmd(object):
                 #self.diff_function = difflib.unified_diff
         self._dirlist = []
         self._preserve = {'pass_test': 0, 'fail_test': 0, 'no_result': 0}
-        if os.environ.has_key('PRESERVE') and not os.environ['PRESERVE'] is '':
+        if os.environ.has_key('PRESERVE') and os.environ['PRESERVE'] is not '':
             self._preserve['pass_test'] = os.environ['PRESERVE']
             self._preserve['fail_test'] = os.environ['PRESERVE']
             self._preserve['no_result'] = os.environ['PRESERVE']
@@ -932,7 +919,7 @@ class TestCmd(object):
                 arg = string.replace(arg, c, slash+c)
 
             if re_space.search(arg):
-                arg = '"' + arg + '"'
+                arg = f'"{arg}"'
             return arg
 
     else:
@@ -942,7 +929,7 @@ class TestCmd(object):
         # the arg.
         def escape(self, arg):
             if re_space.search(arg):
-                arg = '"' + arg + '"'
+                arg = f'"{arg}"'
             return arg
 
     def canonicalize(self, path):
@@ -1006,11 +993,11 @@ class TestCmd(object):
             program = self.program
             if not interpreter:
                 interpreter = self.interpreter
-        if not type(program) in [type([]), type(())]:
+        if type(program) not in [type([]), type(())]:
             program = [program]
         cmd = list(program)
         if interpreter:
-            if not type(interpreter) in [type([]), type(())]:
+            if type(interpreter) not in [type([]), type(())]:
                 interpreter = [interpreter]
             cmd = list(interpreter) + cmd
         if arguments:
@@ -1169,11 +1156,7 @@ class TestCmd(object):
             stdin = subprocess.PIPE
 
         combine = kw.get('combine', self.combine)
-        if combine:
-            stderr_value = subprocess.STDOUT
-        else:
-            stderr_value = subprocess.PIPE
-
+        stderr_value = subprocess.STDOUT if combine else subprocess.PIPE
         return Popen(cmd,
                      stdin=stdin,
                      stdout=subprocess.PIPE,
@@ -1191,10 +1174,7 @@ class TestCmd(object):
         if not self.status:
             self.status = 0
         self._stdout.append(popen.stdout.read())
-        if popen.stderr:
-            stderr = popen.stderr.read()
-        else:
-            stderr = ''
+        stderr = popen.stderr.read() if popen.stderr else ''
         self._stderr.append(stderr)
 
     def run(self, program = None,
@@ -1215,7 +1195,7 @@ class TestCmd(object):
             if not os.path.isabs(chdir):
                 chdir = os.path.join(self.workpath(chdir))
             if self.verbose:
-                sys.stderr.write("chdir(" + chdir + ")\n")
+                sys.stderr.write(f"chdir({chdir}" + ")\n")
             os.chdir(chdir)
         p = self.start(program,
                        interpreter,
@@ -1231,15 +1211,12 @@ class TestCmd(object):
             p.stdin.close()
 
         out = p.stdout.read()
-        if p.stderr is None:
-            err = ''
-        else:
-            err = p.stderr.read()
+        err = '' if p.stderr is None else p.stderr.read()
         try:
             close_output = p.close_output
         except AttributeError:
             p.stdout.close()
-            if not p.stderr is None:
+            if p.stderr is not None:
                 p.stderr.close()
         else:
             close_output()

@@ -9,6 +9,7 @@ Verifies simplest-possible build of a "Hello, world!" program
 using the default build target.
 """
 
+
 import TestGyp
 
 test = TestGyp.TestGyp()
@@ -17,22 +18,26 @@ test.run_gyp('product.gyp')
 test.build('product.gyp')
 
 # executables
-test.built_file_must_exist('alt1' + test._exe, test.EXECUTABLE, bare=True)
+test.built_file_must_exist(f'alt1{test._exe}', test.EXECUTABLE, bare=True)
 test.built_file_must_exist('hello2.stuff', test.EXECUTABLE, bare=True)
 test.built_file_must_exist('yoalt3.stuff', test.EXECUTABLE, bare=True)
 
 # shared libraries
-test.built_file_must_exist(test.dll_ + 'alt4' + test._dll,
-                           test.SHARED_LIB, bare=True)
-test.built_file_must_exist(test.dll_ + 'hello5.stuff',
-                           test.SHARED_LIB, bare=True)
+test.built_file_must_exist(
+    f'{test.dll_}alt4{test._dll}', test.SHARED_LIB, bare=True
+)
+test.built_file_must_exist(
+    f'{test.dll_}hello5.stuff', test.SHARED_LIB, bare=True
+)
 test.built_file_must_exist('yoalt6.stuff', test.SHARED_LIB, bare=True)
 
 # static libraries
-test.built_file_must_exist(test.lib_ + 'alt7' + test._lib,
-                           test.STATIC_LIB, bare=True)
-test.built_file_must_exist(test.lib_ + 'hello8.stuff',
-                           test.STATIC_LIB, bare=True)
+test.built_file_must_exist(
+    f'{test.lib_}alt7{test._lib}', test.STATIC_LIB, bare=True
+)
+test.built_file_must_exist(
+    f'{test.lib_}hello8.stuff', test.STATIC_LIB, bare=True
+)
 test.built_file_must_exist('yoalt9.stuff', test.STATIC_LIB, bare=True)
 
 # alternate product_dir

@@ -51,7 +51,7 @@ if sys.platform == 'darwin':
   for target in targets:
     test.build('test.gyp', target, chdir=CHDIR)
     test.built_file_must_exist(target, chdir=CHDIR)
-    fail_target = target + '-fail'
+    fail_target = f'{target}-fail'
     test.build('test.gyp', fail_target, chdir=CHDIR, status=None,
                stderr=None, match=IgnoreOutput)
     test.built_file_must_not_exist(fail_target, chdir=CHDIR)

@@ -8,6 +8,7 @@
 Make sure debug info setting is extracted properly.
 """
 
+
 import TestGyp
 
 import sys
@@ -20,7 +21,7 @@ if sys.platform == 'win32':
   test.build('debug-info.gyp', test.ALL, chdir=CHDIR)
 
   suffix = '.exe.pdb' if test.format == 'ninja' else '.pdb'
-  test.built_file_must_not_exist('test_debug_off%s' % suffix, chdir=CHDIR)
-  test.built_file_must_exist('test_debug_on%s' % suffix, chdir=CHDIR)
+  test.built_file_must_not_exist(f'test_debug_off{suffix}', chdir=CHDIR)
+  test.built_file_must_exist(f'test_debug_on{suffix}', chdir=CHDIR)
 
   test.pass_test()

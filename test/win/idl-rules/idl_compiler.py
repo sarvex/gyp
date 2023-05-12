@@ -11,7 +11,7 @@ import sys
 
 if len(sys.argv) == 2:
   basename, ext = os.path.splitext(sys.argv[1])
-  with open('%s.h' % basename, 'w') as f:
+  with open(f'{basename}.h', 'w') as f:
     f.write('// %s.h\n' % basename)
-  with open('%s.cpp' % basename, 'w') as f:
+  with open(f'{basename}.cpp', 'w') as f:
     f.write('// %s.cpp\n' % basename)

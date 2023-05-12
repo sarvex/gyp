@@ -8,6 +8,7 @@
 Verifies simple actions when using an explicit build target of 'all'.
 """
 
+
 import TestGyp
 
 test = TestGyp.TestGyp()
@@ -21,11 +22,7 @@ test.relocate('src', 'relocate/src')
 # Build all.
 test.build('all.gyp', chdir='relocate/src')
 
-if test.format=='xcode':
-  chdir = 'relocate/src/dir1'
-else:
-  chdir = 'relocate/src'
-
+chdir = 'relocate/src/dir1' if test.format=='xcode' else 'relocate/src'
 # Output is as expected.
 file_content = 'Hello from emit.py\n'
 test.built_file_must_match('out2.txt', file_content, chdir=chdir)

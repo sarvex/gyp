@@ -17,24 +17,21 @@ not_found = 'No dependencies'
 def _CreateConfigFile(files, additional_compile_targets, test_targets=[]):
   """Creates the analyzer config file, which is used as the input to analyzer.
   See description of analyzer.py for description of the arguments."""
-  f = open('test_file', 'w')
-  to_write = {'files': files,
-              'test_targets': test_targets,
-              'additional_compile_targets': additional_compile_targets }
-  json.dump(to_write, f)
-  f.close()
+  with open('test_file', 'w') as f:
+    to_write = {'files': files,
+                'test_targets': test_targets,
+                'additional_compile_targets': additional_compile_targets }
+    json.dump(to_write, f)
 
 
 def _CreateBogusConfigFile():
-  f = open('test_file','w')
-  f.write('bogus')
-  f.close()
+  with open('test_file','w') as f:
+    f.write('bogus')
 
 
 def _ReadOutputFileContents():
-  f = open('analyzer_output', 'r')
-  result = json.load(f)
-  f.close()
+  with open('analyzer_output', 'r') as f:
+    result = json.load(f)
   return result
 
 

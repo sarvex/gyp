@@ -121,10 +121,7 @@ def main(argv=None):
   if not args.quiet:
     runner.print_results()
 
-  if runner.failures:
-    return 1
-  else:
-    return 0
+  return 1 if runner.failures else 0
 
 
 def print_configuration_info():
@@ -132,18 +129,17 @@ def print_configuration_info():
   if sys.platform == 'darwin':
     sys.path.append(os.path.abspath('test/lib'))
     import TestMac
-    print('  Mac %s %s' % (platform.mac_ver()[0], platform.mac_ver()[2]))
-    print('  Xcode %s' % TestMac.Xcode.Version())
+    print(f'  Mac {platform.mac_ver()[0]} {platform.mac_ver()[2]}')
+    print(f'  Xcode {TestMac.Xcode.Version()}')
   elif sys.platform == 'win32':
     sys.path.append(os.path.abspath('pylib'))
     import gyp.MSVSVersion
-    print('  Win %s %s\n' % platform.win32_ver()[0:2])
-    print('  MSVS %s' %
-          gyp.MSVSVersion.SelectVisualStudioVersion().Description())
+    print('  Win %s %s\n' % platform.win32_ver()[:2])
+    print(f'  MSVS {gyp.MSVSVersion.SelectVisualStudioVersion().Description()}')
   elif sys.platform in ('linux', 'linux2'):
-    print('  Linux %s' % ' '.join(platform.linux_distribution()))
-  print('  Python %s' % platform.python_version())
-  print('  PYTHONPATH=%s' % os.environ['PYTHONPATH'])
+    print(f"  Linux {' '.join(platform.linux_distribution())}")
+  print(f'  Python {platform.python_version()}')
+  print(f"  PYTHONPATH={os.environ['PYTHONPATH']}")
   print()
 
 
@@ -195,7 +191,7 @@ class Runner(object):
       res = 'skipped'
     elif proc.returncode:
       res = 'failed'
-      self.failures.append('(%s) %s' % (test, fmt))
+      self.failures.append(f'({test}) {fmt}')
     else:
       res = 'passed'
     res_msg = ' %s %.3fs' % (res, took)
@@ -206,7 +202,7 @@ class Runner(object):
         not (stdout.endswith('NO RESULT\n'))):
       print()
       for l in stdout.splitlines():
-        print('    %s' % l)
+        print(f'    {l}')
     elif not self.isatty:
       print()
 

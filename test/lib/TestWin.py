@@ -39,9 +39,7 @@ class Registry(object):
     # Note that the error text may be in [1] in some cases
     text = p.communicate()[0]
     # Check return code from reg.exe; officially 0==success and 1==error
-    if p.returncode:
-      return None
-    return text
+    return None if p.returncode else text
 
   def Query(self, key, value=None):
     r"""Use reg.exe to read a particular key through _QueryBase.
@@ -84,9 +82,7 @@ class Registry(object):
       return None
     # Extract value.
     match = re.search(r'REG_\w+\s+([^\r]+)\r\n', text)
-    if not match:
-      return None
-    return match.group(1)
+    return None if not match else match[1]
 
   def KeyExists(self, key):
     """Use reg.exe to see if a key exists.
@@ -96,6 +92,4 @@ class Registry(object):
     Return:
       True if the key exists
     """
-    if not self.Query(key):
-      return False
-    return True
+    return bool(self.Query(key))

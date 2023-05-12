@@ -8,7 +8,7 @@ import sys
 import time
 
 output = sys.argv[1]
-persistoutput = "%s.persist" % sys.argv[1]
+persistoutput = f"{sys.argv[1]}.persist"
 
 count = 0
 try:
@@ -19,9 +19,7 @@ count = int(count) + 1
 
 if len(sys.argv) > 2:
   max_count = int(sys.argv[2])
-  if count > max_count:
-    count = max_count
-
+  count = min(count, max_count)
 oldcount = 0
 try:
   oldcount = open(output, 'r').read()

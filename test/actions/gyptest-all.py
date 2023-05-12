@@ -8,6 +8,7 @@
 Verifies simple actions when using an explicit build target of 'all'.
 """
 
+
 import glob
 import os
 import TestGyp
@@ -48,10 +49,7 @@ Hello from make-prog1.py
 Hello from make-prog2.py
 """
 
-if test.format == 'xcode':
-  chdir = 'relocate/src/subdir1'
-else:
-  chdir = 'relocate/src'
+chdir = 'relocate/src/subdir1' if test.format == 'xcode' else 'relocate/src'
 test.run_built_executable('program', chdir=chdir, stdout=expect)
 
 
@@ -60,10 +58,7 @@ test.must_match('relocate/src/subdir2/file.out', "Hello from make-file.py\n")
 
 expect = "Hello from generate_main.py\n"
 
-if test.format == 'xcode':
-  chdir = 'relocate/src/subdir3'
-else:
-  chdir = 'relocate/src'
+chdir = 'relocate/src/subdir3' if test.format == 'xcode' else 'relocate/src'
 test.run_built_executable('null_input', chdir=chdir, stdout=expect)
 
 
@@ -79,11 +74,7 @@ clean_dep_files()
 test.must_not_exist('relocate/src/dep_1.txt')
 test.must_not_exist('relocate/src/deps_all_done_first_123.txt')
 
-# Make sure all deps finish before an action is run on a 'None' target.
-# If using the Make builder, add -j to make things more difficult.
-arguments = []
-if test.format == 'make':
-  arguments = ['-j']
+arguments = ['-j'] if test.format == 'make' else []
 test.build('actions.gyp', 'action_with_dependencies_123', chdir='relocate/src',
            arguments=arguments)
 test.must_exist('relocate/src/deps_all_done_first_123.txt')

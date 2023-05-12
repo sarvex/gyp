@@ -9,6 +9,7 @@ Verifies that Makefiles get rebuilt when a source gyp file changes and
 --generator-output is used.
 """
 
+
 import TestGyp
 
 # Regenerating build files when a gyp file changes is currently only supported
@@ -18,7 +19,7 @@ test = TestGyp.TestGyp(formats=['make'])
 
 CHDIR='generator-output'
 
-test.run_gyp('hello.gyp', '--generator-output=%s' % CHDIR)
+test.run_gyp('hello.gyp', f'--generator-output={CHDIR}')
 
 test.build('hello.gyp', test.ALL, chdir=CHDIR)
 

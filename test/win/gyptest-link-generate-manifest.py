@@ -60,7 +60,7 @@ if sys.platform == 'win32':
                     extra_manifest):
     exe_file = test.built_file_path(filename, chdir=CHDIR)
     if not generate_manifest:
-      test.must_not_exist(exe_file + '.manifest')
+      test.must_not_exist(f'{exe_file}.manifest')
       manifest = extract_manifest(exe_file, 1)
       test.fail_test(manifest)
       return
@@ -68,8 +68,8 @@ if sys.platform == 'win32':
       manifest = extract_manifest(exe_file, 1)
       test.fail_test(not manifest)
     else:
-      test.must_exist(exe_file + '.manifest')
-      manifest = test.read(exe_file + '.manifest')
+      test.must_exist(f'{exe_file}.manifest')
+      manifest = test.read(f'{exe_file}.manifest')
       test.fail_test(not manifest)
       test.fail_test(extract_manifest(exe_file, 1))
     if generate_manifest:

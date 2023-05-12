@@ -16,7 +16,7 @@ def resolve_path(test, path):
   if path is None:
     return None
   elif test.format == 'make':
-    return '$(abspath %s)' % path
+    return f'$(abspath {path})'
   elif test.format in ['ninja', 'xcode-ninja']:
     return os.path.join('..', '..', path)
   else:
@@ -24,10 +24,7 @@ def resolve_path(test, path):
 
 
 def verify_ld_target(test, ld=None, rel_path=False):
-  if rel_path:
-    ld_expected = resolve_path(test, ld)
-  else:
-    ld_expected = ld
+  ld_expected = resolve_path(test, ld) if rel_path else ld
   # Resolve default values
   if ld_expected is None:
     if test.format == 'make':
@@ -37,23 +34,17 @@ def verify_ld_target(test, ld=None, rel_path=False):
       test.must_not_contain('Makefile', 'LD ?= ')
       return
     elif test.format in ['ninja', 'xcode-ninja']:
-      if sys.platform == 'win32':
-        ld_expected = 'link.exe'
-      else:
-        ld_expected = '$cc'
+      ld_expected = 'link.exe' if sys.platform == 'win32' else '$cc'
   if test.format == 'make':
-    test.must_contain('Makefile', 'LD ?= %s' % ld_expected)
+    test.must_contain('Makefile', f'LD ?= {ld_expected}')
   elif test.format in ['ninja', 'xcode-ninja']:
-    test.must_contain('out/Default/build.ninja', 'ld = %s' % ld_expected)
+    test.must_contain('out/Default/build.ninja', f'ld = {ld_expected}')
   else:
     test.fail_test()
 
 
 def verify_ld_host(test, ld=None, rel_path=False):
-  if rel_path:
-    ld_expected = resolve_path(test, ld)
-  else:
-    ld_expected = ld
+  ld_expected = resolve_path(test, ld) if rel_path else ld
   # Resolve default values
   if ld_expected is None:
     if test.format == 'make':
@@ -63,14 +54,11 @@ def verify_ld_host(test, ld=None, rel_path=False):
       test.must_not_contain('Makefile', 'LD.host ?= ')
       return
     elif test.format in ['ninja', 'xcode-ninja']:
-      if sys.platform == 'win32':
-        ld_expected = '$ld'
-      else:
-        ld_expected = '$cc_host'
+      ld_expected = '$ld' if sys.platform == 'win32' else '$cc_host'
   if test.format == 'make':
-    test.must_contain('Makefile', 'LD.host ?= %s' % ld_expected)
+    test.must_contain('Makefile', f'LD.host ?= {ld_expected}')
   elif test.format in ['ninja', 'xcode-ninja']:
-    test.must_contain('out/Default/build.ninja', 'ld_host = %s' % ld_expected)
+    test.must_contain('out/Default/build.ninja', f'ld_host = {ld_expected}')
   else:
     test.fail_test()
 

@@ -16,7 +16,7 @@ def resolve_path(test, path):
   if path is None:
     return None
   elif test.format == 'make':
-    return '$(abspath %s)' % path
+    return f'$(abspath {path})'
   elif test.format in ['ninja', 'xcode-ninja']:
     return os.path.join('..', '..', path)
   else:
@@ -24,10 +24,7 @@ def resolve_path(test, path):
 
 
 def verify_ar_target(test, ar=None, rel_path=False):
-  if rel_path:
-    ar_expected = resolve_path(test, ar)
-  else:
-    ar_expected = ar
+  ar_expected = resolve_path(test, ar) if rel_path else ar
   # Resolve default values
   if ar_expected is None:
     if test.format == 'make':
@@ -37,33 +34,23 @@ def verify_ar_target(test, ar=None, rel_path=False):
       test.must_not_contain('Makefile', 'AR ?= ')
       return
     elif test.format in ['ninja', 'xcode-ninja']:
-      if sys.platform == 'win32':
-        ar_expected = 'lib.exe'
-      else:
-        ar_expected = 'ar'
+      ar_expected = 'lib.exe' if sys.platform == 'win32' else 'ar'
   if test.format == 'make':
-    test.must_contain('Makefile', 'AR ?= %s' % ar_expected)
+    test.must_contain('Makefile', f'AR ?= {ar_expected}')
   elif test.format in ['ninja', 'xcode-ninja']:
-    test.must_contain('out/Default/build.ninja', 'ar = %s' % ar_expected)
+    test.must_contain('out/Default/build.ninja', f'ar = {ar_expected}')
   else:
     test.fail_test()
 
 
 def verify_ar_host(test, ar=None, rel_path=False):
-  if rel_path:
-    ar_expected = resolve_path(test, ar)
-  else:
-    ar_expected = ar
-  # Resolve default values
+  ar_expected = resolve_path(test, ar) if rel_path else ar
   if ar_expected is None:
-    if sys.platform == 'win32':
-      ar_expected = 'lib.exe'
-    else:
-      ar_expected = 'ar'
+    ar_expected = 'lib.exe' if sys.platform == 'win32' else 'ar'
   if test.format == 'make':
-    test.must_contain('Makefile', 'AR.host ?= %s' % ar_expected)
+    test.must_contain('Makefile', f'AR.host ?= {ar_expected}')
   elif test.format in ['ninja', 'xcode-ninja']:
-    test.must_contain('out/Default/build.ninja', 'ar_host = %s' % ar_expected)
+    test.must_contain('out/Default/build.ninja', f'ar_host = {ar_expected}')
   else:
     test.fail_test()
 

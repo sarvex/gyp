@@ -77,10 +77,7 @@ def IsPathSection(section):
     tail = section[-6:]
     if tail[-1] == 's':
       tail = tail[:-1]
-    if tail[-5:] in ('_file', '_path'):
-      return True
-    return tail[-4:] == '_dir'
-
+    return True if tail[-5:] in ('_file', '_path') else tail[-4:] == '_dir'
   return False
 
 # base_non_configuration_keys is a list of key names that belong in the target
@@ -160,7 +157,7 @@ def GetIncludedBuildFiles(build_file_path, aux_data, included=None):
   in the list will be relative to the current directory.
   """
 
-  if included == None:
+  if included is None:
     included = []
 
   if build_file_path in included:
@@ -203,9 +200,9 @@ def CheckNode(node, keypath):
       assert isinstance(c[n], Const)
       key = c[n].getChildren()[0]
       if key in dict:
-        raise GypError("Key '" + key + "' repeated at level " +
-              repr(len(keypath) + 1) + " with key path '" +
-              '.'.join(keypath) + "'")
+        raise GypError(((
+            f"Key '{key}' repeated at level {repr(len(keypath) + 1)} with key path '"
+            + '.'.join(keypath)) + "'"))
       kp = list(keypath)  # Make a copy of the list for descending this node.
       kp.append(key)
       dict[key] = CheckNode(c[n + 1], kp)
@@ -291,7 +288,7 @@ def LoadBuildFileIncludesIntoDict(subdict, subdict_path, data, aux_data,
 
   # Merge in the included files.
   for include in includes_list:
-    if not 'included' in aux_data[subdict_path]:
+    if 'included' not in aux_data[subdict_path]:
       aux_data[subdict_path]['included'] = []
     aux_data[subdict_path]['included'].append(include)
 
@@ -648,19 +645,15 @@ def IsStrCanonicalInt(string):
 
   The canonical form is such that str(int(string)) == string.
   """
-  if type(string) is str:
-    # This function is called a lot so for maximum performance, avoid
-    # involving regexps which would otherwise make the code much
-    # shorter. Regexps would need twice the time of this function.
-    if string:
-      if string == "0":
-        return True
-      if string[0] == "-":
-        string = string[1:]
-        if not string:
-          return False
-      if '1' <= string[0] <= '9':
-        return string.isdigit()
+  if type(string) is str and string:
+    if string == "0":
+      return True
+    if string[0] == "-":
+      string = string[1:]
+      if not string:
+        return False
+    if '1' <= string[0] <= '9':
+      return string.isdigit()
 
   return False
 
@@ -1035,12 +1028,13 @@ def EvalCondition(condition, conditions_key, phase, variables, build_file):
   """Returns the dict that should be used or None if the result was
   that nothing should be used."""
   if type(condition) is not list:
-    raise GypError(conditions_key + ' must be a list')
+    raise GypError(f'{conditions_key} must be a list')
   if len(condition) < 2:
     # It's possible that condition[0] won't work in which case this
     # attempt will raise its own IndexError.  That's probably fine.
-    raise GypError(conditions_key + ' ' + condition[0] +
-                   ' must be at least length 2, not ' + str(len(condition)))
+    raise GypError(
+        f'{conditions_key} {condition[0]} must be at least length 2, not {len(condition)}'
+    )
 
   i = 0
   result = None
@@ -1048,18 +1042,20 @@ def EvalCondition(condition, conditions_key, phase, variables, build_file):
     cond_expr = condition[i]
     true_dict = condition[i + 1]
     if type(true_dict) is not dict:
-      raise GypError('{} {} must be followed by a dictionary, not {}'.format(
-        conditions_key, cond_expr, type(true_dict)))
+      raise GypError(
+          f'{conditions_key} {cond_expr} must be followed by a dictionary, not {type(true_dict)}'
+      )
     if len(condition) > i + 2 and type(condition[i + 2]) is dict:
       false_dict = condition[i + 2]
-      i = i + 3
+      i += 3
       if i != len(condition):
-        raise GypError('{} {} has {} unexpected trailing items'.format(
-          conditions_key, cond_expr, len(condition) - i))
+        raise GypError(
+            f'{conditions_key} {cond_expr} has {len(condition) - i} unexpected trailing items'
+        )
     else:
       false_dict = None
-      i = i + 2
-    if result == None:
+      i += 2
+    if result is None:
       result = EvalSingleCondition(
           cond_expr, true_dict, false_dict, phase, variables, build_file)
 
@@ -1128,7 +1124,7 @@ def ProcessConditionsInDict(the_dict, phase, variables, build_file):
   else:
     assert False
 
-  if not conditions_key in the_dict:
+  if conditions_key not in the_dict:
     return
 
   conditions_list = the_dict[conditions_key]
@@ -1153,7 +1149,7 @@ def LoadAutomaticVariablesFromDict(variables, the_dict):
   # The variable name is the key name with a "_" character prepended.
   for key, value in the_dict.iteritems():
     if type(value) in (str, int, list):
-      variables['_' + key] = value
+      variables[f'_{key}'] = value
 
 
 def LoadVariablesFromVariablesDict(variables, the_dict, the_dict_key):
@@ -1292,8 +1288,7 @@ def ProcessVariablesAndConditionsInDict(the_dict, phase, variables_in,
       ProcessVariablesAndConditionsInList(value, phase, variables,
                                           build_file)
     elif type(value) is not int:
-      raise TypeError('Unknown type ' + value.__class__.__name__ + \
-                      ' for ' + key)
+      raise TypeError(f'Unknown type {value.__class__.__name__} for {key}')
 
 
 def ProcessVariablesAndConditionsInList(the_list, phase, variables,
@@ -1325,9 +1320,8 @@ def ProcessVariablesAndConditionsInList(the_list, phase, variables,
               'lists only, found ' + expanded.__class__.__name__ + ' at ' + \
               index)
     elif type(item) is not int:
-      raise TypeError('Unknown type ' + item.__class__.__name__ + \
-                      ' at index ' + index)
-    index = index + 1
+      raise TypeError(f'Unknown type {item.__class__.__name__} at index {index}')
+    index += 1
 
 
 def BuildTargetsDict(data):
@@ -1350,7 +1344,7 @@ def BuildTargetsDict(data):
                                                target['target_name'],
                                                target['toolset'])
       if target_name in targets:
-        raise GypError('Duplicate target definitions for ' + target_name)
+        raise GypError(f'Duplicate target definitions for {target_name}')
       targets[target_name] = target
 
   return targets
@@ -1391,8 +1385,9 @@ def QualifyDependencies(targets):
         # appears in the "dependencies" list.
         if dependency_key != 'dependencies' and \
            dependency not in target_dict['dependencies']:
-          raise GypError('Found ' + dependency + ' in ' + dependency_key +
-                         ' of ' + target + ', but not in dependencies')
+          raise GypError(
+              f'Found {dependency} in {dependency_key} of {target}, but not in dependencies'
+          )
 
 
 def ExpandWildcardDependencies(targets, data):
@@ -1425,20 +1420,21 @@ def ExpandWildcardDependencies(targets, data):
             gyp.common.ParseQualifiedTarget(dependencies[index])
         if dependency_target != '*' and dependency_toolset != '*':
           # Not a wildcard.  Keep it moving.
-          index = index + 1
+          index += 1
           continue
 
         if dependency_build_file == target_build_file:
           # It's an error for a target to depend on all other targets in
           # the same file, because a target cannot depend on itself.
-          raise GypError('Found wildcard in ' + dependency_key + ' of ' +
-                         target + ' referring to same build file')
+          raise GypError(
+              f'Found wildcard in {dependency_key} of {target} referring to same build file'
+          )
 
         # Take the wildcard out and adjust the index so that the next
         # dependency in the list will be processed the next time through the
         # loop.
         del dependencies[index]
-        index = index - 1
+        index -= 1
 
         # Loop through the targets in the other build file, adding them to
         # this target's list of dependencies in place of the removed
@@ -1448,12 +1444,10 @@ def ExpandWildcardDependencies(targets, data):
           if int(dependency_target_dict.get('suppress_wildcard', False)):
             continue
           dependency_target_name = dependency_target_dict['target_name']
-          if (dependency_target != '*' and
-              dependency_target != dependency_target_name):
+          if dependency_target not in ['*', dependency_target_name]:
             continue
           dependency_target_toolset = dependency_target_dict['toolset']
-          if (dependency_toolset != '*' and
-              dependency_toolset != dependency_target_toolset):
+          if dependency_toolset not in ['*', dependency_target_toolset]:
             continue
           dependency = gyp.common.QualifiedTarget(dependency_build_file,
                                                   dependency_target_name,
@@ -1475,8 +1469,7 @@ def RemoveDuplicateDependencies(targets):
   lists."""
   for target_name, target_dict in targets.iteritems():
     for dependency_key in dependency_sections:
-      dependencies = target_dict.get(dependency_key, [])
-      if dependencies:
+      if dependencies := target_dict.get(dependency_key, []):
         target_dict[dependency_key] = Unify(dependencies)
 
 
@@ -1491,12 +1484,11 @@ def RemoveSelfDependencies(targets):
   variable set."""
   for target_name, target_dict in targets.iteritems():
     for dependency_key in dependency_sections:
-      dependencies = target_dict.get(dependency_key, [])
-      if dependencies:
+      if dependencies := target_dict.get(dependency_key, []):
         for t in dependencies:
-          if t == target_name:
-            if targets[t].get('variables', {}).get('prune_self_dependency', 0):
-              target_dict[dependency_key] = Filter(dependencies, target_name)
+          if t == target_name and targets[t].get('variables', {}).get(
+              'prune_self_dependency', 0):
+            target_dict[dependency_key] = Filter(dependencies, target_name)
 
 
 def RemoveLinkDependenciesFromNoneTargets(targets):
@@ -1504,13 +1496,12 @@ def RemoveLinkDependenciesFromNoneTargets(targets):
   targets."""
   for target_name, target_dict in targets.iteritems():
     for dependency_key in dependency_sections:
-      dependencies = target_dict.get(dependency_key, [])
-      if dependencies:
+      if dependencies := target_dict.get(dependency_key, []):
         for t in dependencies:
-          if target_dict.get('type', None) == 'none':
-            if targets[t].get('variables', {}).get('link_dependency', 0):
-              target_dict[dependency_key] = \
-                  Filter(target_dict[dependency_key], t)
+          if target_dict.get('type', None) == 'none' and targets[t].get(
+              'variables', {}).get('link_dependency', 0):
+            target_dict[dependency_key] = \
+                Filter(target_dict[dependency_key], t)
 
 
 class DependencyGraphNode(object):
@@ -1567,7 +1558,7 @@ class DependencyGraphNode(object):
         # always start at the beginning, then we get O(n^2) behaviour.
         for node_dependent_dependency in (sorted(node_dependent.dependencies,
                                                  key=ExtractNodeRef)):
-          if not node_dependent_dependency.ref in flat_list:
+          if node_dependent_dependency.ref not in flat_list:
             # The dependent one or more dependencies not in flat_list.  There
             # will be more chances to add it to flat_list when examining
             # it again as a dependent of those other dependencies, provided
@@ -1594,7 +1585,7 @@ class DependencyGraphNode(object):
       for child in node.dependents:
         if child in path:
           results.append([child] + path[:path.index(child) + 1])
-        elif not child in visited:
+        elif child not in visited:
           visited.add(child)
           Visit(child, [child] + path)
 
@@ -1605,7 +1596,7 @@ class DependencyGraphNode(object):
 
   def DirectDependencies(self, dependencies=None):
     """Returns a list of just direct dependencies."""
-    if dependencies == None:
+    if dependencies is None:
       dependencies = []
 
     for dependency in self.dependencies:
@@ -1633,7 +1624,7 @@ class DependencyGraphNode(object):
     public entry point.
     """
 
-    if dependencies == None:
+    if dependencies is None:
       dependencies = []
 
     index = 0
@@ -1648,11 +1639,11 @@ class DependencyGraphNode(object):
       # the depth-first method used by DeepDependencies.
       add_index = 1
       for imported_dependency in \
-          dependency_dict.get('export_dependent_settings', []):
+            dependency_dict.get('export_dependent_settings', []):
         if imported_dependency not in dependencies:
           dependencies.insert(index + add_index, imported_dependency)
           add_index = add_index + 1
-      index = index + 1
+      index += 1
 
     return dependencies
 
@@ -1715,8 +1706,8 @@ class DependencyGraphNode(object):
       raise GypError("Missing 'target_name' field in target.")
 
     if 'type' not in targets[self.ref]:
-      raise GypError("Missing 'type' field in target %s" %
-                     targets[self.ref]['target_name'])
+      raise GypError(
+          f"Missing 'type' field in target {targets[self.ref]['target_name']}")
 
     target_type = targets[self.ref]['type']
 
@@ -1804,19 +1795,19 @@ def BuildDependencyList(targets):
   for target, spec in targets.iteritems():
     target_node = dependency_nodes[target]
     target_build_file = gyp.common.BuildFile(target)
-    dependencies = spec.get('dependencies')
-    if not dependencies:
-      target_node.dependencies = [root_node]
-      root_node.dependents.append(target_node)
-    else:
+    if dependencies := spec.get('dependencies'):
       for dependency in dependencies:
         dependency_node = dependency_nodes.get(dependency)
         if not dependency_node:
-          raise GypError("Dependency '%s' not found while "
-                         "trying to load target %s" % (dependency, target))
+          raise GypError(
+              f"Dependency '{dependency}' not found while trying to load target {target}"
+          )
         target_node.dependencies.append(dependency_node)
         dependency_node.dependents.append(target_node)
 
+    else:
+      target_node.dependencies = [root_node]
+      root_node.dependents.append(target_node)
   flat_list = root_node.FlattenToList()
 
   # If there's anything left unvisited, there must be a circular dependency
@@ -1833,7 +1824,7 @@ def BuildDependencyList(targets):
     cycles = []
     for cycle in root_node.FindCycles():
       paths = [node.ref for node in cycle]
-      cycles.append('Cycle: %s' % ' -> '.join(paths))
+      cycles.append(f"Cycle: {' -> '.join(paths)}")
     raise DependencyGraphNode.CircularException(
         'Cycles in dependency graph detected:\n' + '\n'.join(cycles))
 
@@ -1921,7 +1912,7 @@ def DoDependentSettings(key, flat_list, targets, dependency_nodes):
 
     for dependency in dependencies:
       dependency_dict = targets[dependency]
-      if not key in dependency_dict:
+      if key not in dependency_dict:
         continue
       dependency_build_file = gyp.common.BuildFile(dependency)
       MergeDicts(target_dict, dependency_dict[key],
@@ -1941,7 +1932,7 @@ def AdjustStaticLibraryDependencies(flat_list, targets, dependency_nodes,
     target_type = target_dict['type']
 
     if target_type == 'static_library':
-      if not 'dependencies' in target_dict:
+      if 'dependencies' not in target_dict:
         continue
 
       target_dict['dependencies_original'] = target_dict.get(
@@ -1964,16 +1955,16 @@ def AdjustStaticLibraryDependencies(flat_list, targets, dependency_nodes,
 
         # Remove every non-hard static library dependency and remove every
         # non-static library dependency that isn't a direct dependency.
-        if (dependency_dict['type'] == 'static_library' and \
-            not dependency_dict.get('hard_dependency', False)) or \
-           (dependency_dict['type'] != 'static_library' and \
-            not dependency in target_dict['dependencies']):
+        if ((dependency_dict['type'] == 'static_library'
+             and not dependency_dict.get('hard_dependency', False))
+            or dependency_dict['type'] != 'static_library'
+            and dependency not in target_dict['dependencies']):
           # Take the dependency out of the list, and don't increment index
           # because the next dependency to analyze will shift into the index
           # formerly occupied by the one being removed.
           del dependencies[index]
         else:
-          index = index + 1
+          index += 1
 
       # Update the dependencies. If the dependencies list is empty, it's not
       # needed, so unhook it.
@@ -1992,9 +1983,9 @@ def AdjustStaticLibraryDependencies(flat_list, targets, dependency_nodes,
       for dependency in link_dependencies:
         if dependency == target:
           continue
-        if not 'dependencies' in target_dict:
+        if 'dependencies' not in target_dict:
           target_dict['dependencies'] = []
-        if not dependency in target_dict['dependencies']:
+        if dependency not in target_dict['dependencies']:
           target_dict['dependencies'].append(dependency)
       # Sort the dependencies list in the order from dependents to dependencies.
       # e.g. If A and B depend on C and C depends on D, sort them in A, B, C, D.
@@ -2010,36 +2001,18 @@ exception_re = re.compile(r'''["']?[-/$<>^]''')
 
 
 def MakePathRelative(to_file, fro_file, item):
-  # If item is a relative path, it's relative to the build file dict that it's
-  # coming from.  Fix it up to make it relative to the build file dict that
-  # it's going into.
-  # Exception: any |item| that begins with these special characters is
-  # returned without modification.
-  #   /   Used when a path is already absolute (shortcut optimization;
-  #       such paths would be returned as absolute anyway)
-  #   $   Used for build environment variables
-  #   -   Used for some build environment flags (such as -lapr-1 in a
-  #       "libraries" section)
-  #   <   Used for our own variable and command expansions (see ExpandVariables)
-  #   >   Used for our own variable and command expansions (see ExpandVariables)
-  #   ^   Used for our own variable and command expansions (see ExpandVariables)
-  #
-  #   "/' Used when a value is quoted.  If these are present, then we
-  #       check the second character instead.
-  #
   if to_file == fro_file or exception_re.match(item):
     return item
-  else:
-    # TODO(dglazkov) The backslash/forward-slash replacement at the end is a
-    # temporary measure. This should really be addressed by keeping all paths
-    # in POSIX until actual project generation.
-    ret = os.path.normpath(os.path.join(
-        gyp.common.RelativePath(os.path.dirname(fro_file),
-                                os.path.dirname(to_file)),
-                                item)).replace('\\', '/')
-    if item[-1] == '/':
-      ret += '/'
-    return ret
+  # TODO(dglazkov) The backslash/forward-slash replacement at the end is a
+  # temporary measure. This should really be addressed by keeping all paths
+  # in POSIX until actual project generation.
+  ret = os.path.normpath(os.path.join(
+      gyp.common.RelativePath(os.path.dirname(fro_file),
+                              os.path.dirname(to_file)),
+                              item)).replace('\\', '/')
+  if item[-1] == '/':
+    ret += '/'
+  return ret
 
 def MergeLists(to, fro, to_file, fro_file, is_paths=False, append=True):
   # Python documentation recommends objects which do not support hash
@@ -2048,25 +2021,19 @@ def MergeLists(to, fro, to_file, fro_file, is_paths=False, append=True):
 
   # If x is hashable, returns whether x is in s. Else returns whether x is in l.
   def is_in_set_or_list(x, s, l):
-    if is_hashable(x):
-      return x in s
-    return x in l
+    return x in s if is_hashable(x) else x in l
 
   prepend_index = 0
 
   # Make membership testing of hashables in |to| (in particular, strings)
   # faster.
-  hashable_to_set = set(x for x in to if is_hashable(x))
+  hashable_to_set = {x for x in to if is_hashable(x)}
   for item in fro:
     singleton = False
     if type(item) in (str, int):
       # The cheap and easy case.
-      if is_paths:
-        to_item = MakePathRelative(to_file, fro_file, item)
-      else:
-        to_item = item
-
-      if not (type(item) is str and item.startswith('-')):
+      to_item = MakePathRelative(to_file, fro_file, item) if is_paths else item
+      if type(item) is not str or not item.startswith('-'):
         # Any string that doesn't begin with a "-" is a singleton - it can
         # only appear once in a list, to be enforced by the list merge append
         # or prepend.
@@ -2131,19 +2098,16 @@ def MergeDicts(to, fro, to_file, fro_file):
 
       if bad_merge:
         raise TypeError(
-            'Attempt to merge dict value of type ' + v.__class__.__name__ + \
-            ' into incompatible type ' + to[k].__class__.__name__ + \
-            ' for key ' + k)
+            f'Attempt to merge dict value of type {v.__class__.__name__} into incompatible type {to[k].__class__.__name__} for key {k}'
+        )
     if type(v) in (str, int):
-      # Overwrite the existing value, if any.  Cheap and easy.
-      is_path = IsPathSection(k)
-      if is_path:
+      if is_path := IsPathSection(k):
         to[k] = MakePathRelative(to_file, fro_file, v)
       else:
         to[k] = v
     elif type(v) is dict:
       # Recurse, guaranteeing copies will be made of objects that require it.
-      if not k in to:
+      if k not in to:
         to[k] = {}
       MergeDicts(to[k], v, to_file, fro_file)
     elif type(v) is list:
@@ -2161,28 +2125,27 @@ def MergeDicts(to, fro, to_file, fro_file):
       # dict key, it's checked in this dict-oriented function.
       ext = k[-1]
       append = True
-      if ext == '=':
+      if ext == '+':
         list_base = k[:-1]
-        lists_incompatible = [list_base, list_base + '?']
-        to[list_base] = []
-      elif ext == '+':
-        list_base = k[:-1]
-        lists_incompatible = [list_base + '=', list_base + '?']
+        lists_incompatible = [f'{list_base}=', f'{list_base}?']
         append = False
+      elif ext == '=':
+        list_base = k[:-1]
+        lists_incompatible = [list_base, f'{list_base}?']
+        to[list_base] = []
       elif ext == '?':
         list_base = k[:-1]
-        lists_incompatible = [list_base, list_base + '=', list_base + '+']
+        lists_incompatible = [list_base, f'{list_base}=', f'{list_base}+']
       else:
         list_base = k
-        lists_incompatible = [list_base + '=', list_base + '?']
+        lists_incompatible = [f'{list_base}=', f'{list_base}?']
 
       # Some combinations of merge policies appearing together are meaningless.
       # It's stupid to replace and append simultaneously, for example.  Append
       # and prepend are the only policies that can coexist.
       for list_incompatible in lists_incompatible:
         if list_incompatible in fro:
-          raise GypError('Incompatible list policies ' + k + ' and ' +
-                         list_incompatible)
+          raise GypError(f'Incompatible list policies {k} and {list_incompatible}')
 
       if list_base in to:
         if ext == '?':
@@ -2193,9 +2156,8 @@ def MergeDicts(to, fro, to_file, fro_file):
           # This may not have been checked above if merging in a list with an
           # extension character.
           raise TypeError(
-              'Attempt to merge dict value of type ' + v.__class__.__name__ + \
-              ' into incompatible type ' + to[list_base].__class__.__name__ + \
-              ' for key ' + list_base + '(' + k + ')')
+              f'Attempt to merge dict value of type {v.__class__.__name__} into incompatible type {to[list_base].__class__.__name__} for key {list_base}({k})'
+          )
       else:
         to[list_base] = []
 
@@ -2236,27 +2198,22 @@ def MergeConfigWithInheritance(new_configuration_dict, build_file,
 
 
 def SetUpConfigurations(target, target_dict):
-  # key_suffixes is a list of key suffixes that might appear on key names.
-  # These suffixes are handled in conditional evaluations (for =, +, and ?)
-  # and rules/exclude processing (for ! and /).  Keys with these suffixes
-  # should be treated the same as keys without.
-  key_suffixes = ['=', '+', '?', '!', '/']
-
   build_file = gyp.common.BuildFile(target)
 
   # Provide a single configuration by default if none exists.
   # TODO(mark): Signal an error if default_configurations exists but
   # configurations does not.
-  if not 'configurations' in target_dict:
+  if 'configurations' not in target_dict:
     target_dict['configurations'] = {'Default': {}}
-  if not 'default_configuration' in target_dict:
+  if 'default_configuration' not in target_dict:
     concrete = [i for (i, config) in target_dict['configurations'].iteritems()
                 if not config.get('abstract')]
     target_dict['default_configuration'] = sorted(concrete)[0]
 
   merged_configurations = {}
   configs = target_dict['configurations']
-  for (configuration, old_configuration_dict) in configs.iteritems():
+  key_suffixes = ['=', '+', '?', '!', '/']
+  for configuration, old_configuration_dict in configs.iteritems():
     # Skip abstract configurations (saves work only).
     if old_configuration_dict.get('abstract'):
       continue
@@ -2264,13 +2221,10 @@ def SetUpConfigurations(target, target_dict):
     # Get the inheritance relationship right by making a copy of the target
     # dict.
     new_configuration_dict = {}
-    for (key, target_val) in target_dict.iteritems():
+    for key, target_val in target_dict.iteritems():
       key_ext = key[-1:]
-      if key_ext in key_suffixes:
-        key_base = key[:-1]
-      else:
-        key_base = key
-      if not key_base in non_configuration_keys:
+      key_base = key[:-1] if key_ext in key_suffixes else key
+      if key_base not in non_configuration_keys:
         new_configuration_dict[key] = gyp.simple_copy.deepcopy(target_val)
 
     # Merge in configuration (with all its parents first).
@@ -2280,7 +2234,7 @@ def SetUpConfigurations(target, target_dict):
     merged_configurations[configuration] = new_configuration_dict
 
   # Put the new configurations back into the target dict as a configuration.
-  for configuration in merged_configurations.keys():
+  for configuration in merged_configurations:
     target_dict['configurations'][configuration] = (
         merged_configurations[configuration])
 
@@ -2296,11 +2250,8 @@ def SetUpConfigurations(target, target_dict):
   delete_keys = []
   for key in target_dict:
     key_ext = key[-1:]
-    if key_ext in key_suffixes:
-      key_base = key[:-1]
-    else:
-      key_base = key
-    if not key_base in non_configuration_keys:
+    key_base = key[:-1] if key_ext in key_suffixes else key
+    if key_base not in non_configuration_keys:
       delete_keys.append(key)
   for key in delete_keys:
     del target_dict[key]
@@ -2310,8 +2261,9 @@ def SetUpConfigurations(target, target_dict):
     configuration_dict = target_dict['configurations'][configuration]
     for key in configuration_dict.keys():
       if key in invalid_configuration_keys:
-        raise GypError('%s not allowed in the %s configuration, found in '
-                       'target %s' % (key, configuration, target))
+        raise GypError(
+            f'{key} not allowed in the {configuration} configuration, found in target {target}'
+        )
 
 
 

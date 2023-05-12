@@ -56,7 +56,7 @@ def LocalEnv(local_env):
     yield
   finally:
     os.environ.clear()
-    os.environ.update(old_env)
+    os.environ |= old_env
 
 
 class TestGypBase(TestCommon.TestCommon):
@@ -109,11 +109,8 @@ class TestGypBase(TestCommon.TestCommon):
 
     if not gyp:
       gyp = os.environ.get('TESTGYP_GYP')
-      if not gyp:
-        if sys.platform == 'win32':
-          gyp = 'gyp.bat'
-        else:
-          gyp = 'gyp'
+    if not gyp:
+      gyp = 'gyp.bat' if sys.platform == 'win32' else 'gyp'
     self.gyp = os.path.abspath(gyp)
     self.no_parallel = False
 
@@ -137,10 +134,10 @@ class TestGypBase(TestCommon.TestCommon):
     super(TestGypBase, self).__init__(*args, **kw)
 
     real_format = self.format.split('-')[-1]
-    excluded_formats = set([f for f in formats if f[0] == '!'])
+    excluded_formats = {f for f in formats if f[0] == '!'}
     included_formats = set(formats) - excluded_formats
-    if ('!'+real_format in excluded_formats or
-        included_formats and real_format not in included_formats):
+    if (f'!{real_format}' in excluded_formats
+        or included_formats and real_format not in included_formats):
       msg = 'Invalid test for %r format; skipping test.\n'
       self.skip_test(msg % self.format)
 
@@ -251,8 +248,7 @@ class TestGypBase(TestCommon.TestCommon):
       if os.path.isabs(build_tool):
         self.build_tool = build_tool
         return
-      build_tool = self.where_is(build_tool)
-      if build_tool:
+      if build_tool := self.where_is(build_tool):
         self.build_tool = build_tool
         return
 
@@ -303,9 +299,11 @@ class TestGypBase(TestCommon.TestCommon):
 
     # TODO:  --depth=. works around Chromium-specific tree climbing.
     depth = kw.pop('depth', '.')
-    run_args = ['--depth='+depth]
-    run_args.extend(['--format='+f for f in self.formats])
-    run_args.append(gyp_file)
+    run_args = [
+        f'--depth={depth}',
+        *[f'--format={f}' for f in self.formats],
+        gyp_file,
+    ]
     if self.no_parallel:
       run_args += ['--no-parallel']
     # TODO: if extra_args contains a '--build' flag
@@ -315,7 +313,7 @@ class TestGypBase(TestCommon.TestCommon):
     xcode_ninja_target_pattern = kw.pop('xcode_ninja_target_pattern', '.*')
     if self is TestGypXcodeNinja:
       run_args.extend(
-        ['-G', 'xcode_ninja_target_pattern=%s' % xcode_ninja_target_pattern])
+          ['-G', f'xcode_ninja_target_pattern={xcode_ninja_target_pattern}'])
     run_args.extend(args)
     return self.run(program=self.gyp, arguments=run_args, **kw)
 
@@ -340,16 +338,10 @@ class TestGypBase(TestCommon.TestCommon):
     self.configuration = configuration
 
   def configuration_dirname(self):
-    if self.configuration:
-      return self.configuration.split('|')[0]
-    else:
-      return 'Default'
+    return self.configuration.split('|')[0] if self.configuration else 'Default'
 
   def configuration_buildname(self):
-    if self.configuration:
-      return self.configuration
-    else:
-      return 'Default'
+    return self.configuration if self.configuration else 'Default'
 
   #
   # Abstract methods to be defined by format-specific subclasses.
@@ -460,8 +452,7 @@ class TestGypCMake(TestGypBase):
 
     kw['arguments'] = arguments
 
-    stderr = kw.get('stderr', None)
-    if stderr:
+    if stderr := kw.get('stderr', None):
       kw['stderr'] = stderr.split('$$$')[0]
 
     self.run(program=self.build_tool, **kw)
@@ -481,8 +472,7 @@ class TestGypCMake(TestGypBase):
 
     kw['arguments'] = arguments
 
-    stderr = kw.get('stderr', None)
-    if stderr:
+    if stderr := kw.get('stderr', None):
       stderrs = stderr.split('$$$')
       kw['stderr'] = stderrs[1] if len(stderrs) > 1 else ''
 
@@ -510,16 +500,14 @@ class TestGypCMake(TestGypBase):
 
   def built_file_path(self, name, type=None, **kw):
     result = []
-    chdir = kw.get('chdir')
-    if chdir:
+    if chdir := kw.get('chdir'):
       result.append(chdir)
-    result.append('out')
-    result.append(self.configuration_dirname())
+    result.extend(('out', self.configuration_dirname()))
     if type == self.STATIC_LIB:
       if sys.platform != 'darwin':
         result.append('obj.target')
     elif type == self.SHARED_LIB:
-      if sys.platform != 'darwin' and sys.platform != 'win32':
+      if sys.platform not in ['darwin', 'win32']:
         result.append('lib.target')
     subdir = kw.get('subdir')
     if subdir and type != self.SHARED_LIB:
@@ -567,10 +555,7 @@ class TestGypMake(TestGypBase):
     """
     Verifies that a build of the specified Make target is up to date.
     """
-    if target in (None, self.DEFAULT):
-      message_target = 'all'
-    else:
-      message_target = target
+    message_target = 'all' if target in (None, self.DEFAULT) else target
     kw['stdout'] = "make: Nothing to be done for `%s'.\n" % message_target
     return self.build(gyp_file, target, **kw)
   def run_built_executable(self, name, *args, **kw):
@@ -583,10 +568,10 @@ class TestGypMake(TestGypBase):
     if sys.platform == 'darwin':
       # Mac puts target shared libraries right in the product directory.
       configuration = self.configuration_dirname()
-      os.environ['DYLD_LIBRARY_PATH'] = (
-          libdir + '.host:' + os.path.join('out', configuration))
+      os.environ['DYLD_LIBRARY_PATH'] = f'{libdir}.host:' + os.path.join(
+          'out', configuration)
     else:
-      os.environ['LD_LIBRARY_PATH'] = libdir + '.host:' + libdir + '.target'
+      os.environ['LD_LIBRARY_PATH'] = f'{libdir}.host:{libdir}.target'
     # Enclosing the name in a list avoids prepending the original dir.
     program = [self.built_file_path(name, type=self.EXECUTABLE, **kw)]
     return self.run(program=program, *args, **kw)
@@ -608,8 +593,7 @@ class TestGypMake(TestGypBase):
     the default 'obj.target'.
     """
     result = []
-    chdir = kw.get('chdir')
-    if chdir:
+    if chdir := kw.get('chdir'):
       result.append(chdir)
     configuration = self.configuration_dirname()
     result.extend(['out', configuration])
@@ -790,8 +774,7 @@ class TestGypOnMSToolchain(TestGypBase):
   @staticmethod
   def _ComputeVsvarsPath(devenv_path):
     devenv_dir = os.path.split(devenv_path)[0]
-    vsvars_path = os.path.join(devenv_path, '../../Tools/vsvars32.bat')
-    return vsvars_path
+    return os.path.join(devenv_path, '../../Tools/vsvars32.bat')
 
   def initialize_build_tool(self):
     super(TestGypOnMSToolchain, self).initialize_build_tool()
@@ -806,8 +789,7 @@ class TestGypOnMSToolchain(TestGypBase):
     returning stdout."""
     assert sys.platform in ('win32', 'cygwin')
     cmd = os.environ.get('COMSPEC', 'cmd.exe')
-    arguments = [cmd, '/c', self.vsvars_path, '&&', 'dumpbin']
-    arguments.extend(dumpbin_args)
+    arguments = [cmd, '/c', self.vsvars_path, '&&', 'dumpbin', *dumpbin_args]
     proc = subprocess.Popen(arguments, stdout=subprocess.PIPE)
     output = proc.communicate()[0]
     assert not proc.returncode
@@ -849,16 +831,14 @@ class TestGypNinja(TestGypOnMSToolchain):
 
   def built_file_path(self, name, type=None, **kw):
     result = []
-    chdir = kw.get('chdir')
-    if chdir:
+    if chdir := kw.get('chdir'):
       result.append(chdir)
-    result.append('out')
-    result.append(self.configuration_dirname())
+    result.extend(('out', self.configuration_dirname()))
     if type == self.STATIC_LIB:
       if sys.platform != 'darwin':
         result.append('obj')
     elif type == self.SHARED_LIB:
-      if sys.platform != 'darwin' and sys.platform != 'win32':
+      if sys.platform not in ['darwin', 'win32']:
         result.append('lib')
     subdir = kw.get('subdir')
     if subdir and type != self.SHARED_LIB:
@@ -906,7 +886,7 @@ class TestGypMSVS(TestGypOnMSToolchain):
         self.configuration or self.configuration_buildname())
       build = '/t'
       if target not in (None, self.ALL, self.DEFAULT):
-        build += ':' + target
+        build += f':{target}'
       if clean:
         build += ':Clean'
       elif rebuild:
@@ -983,8 +963,7 @@ class TestGypMSVS(TestGypOnMSToolchain):
     prefixes and suffixes to a platform-independent library base name.
     """
     result = []
-    chdir = kw.get('chdir')
-    if chdir:
+    if chdir := kw.get('chdir'):
       result.append(chdir)
     result.append(self.configuration_dirname())
     if type == self.STATIC_LIB:
@@ -1022,7 +1001,7 @@ class TestGypMSVSNinja(TestGypNinja):
       # supports 'Clean', 'Rebuild', and 'Publish' (with none meaning Default).
       # This limitation is due to the .sln -> .sln.metaproj conversion.
       # The ':' is not special, 'proj:target' is a target in the metaproj.
-      arguments.extend([target+'.vcxproj'])
+      arguments.extend([f'{target}.vcxproj'])
 
     if clean:
       build = 'Clean'
@@ -1030,12 +1009,12 @@ class TestGypMSVSNinja(TestGypNinja):
       build = 'Rebuild'
     else:
       build = 'Build'
-    arguments.extend(['/target:'+build])
+    arguments.extend([f'/target:{build}'])
     configuration = self.configuration_buildname()
     config = configuration.split('|')
-    arguments.extend(['/property:Configuration='+config[0]])
+    arguments.extend([f'/property:Configuration={config[0]}'])
     if len(config) > 1:
-      arguments.extend(['/property:Platform='+config[1]])
+      arguments.extend([f'/property:Platform={config[1]}'])
     arguments.extend(['/property:BuildInParallel=false'])
     arguments.extend(['/verbosity:minimal'])
 
@@ -1090,7 +1069,7 @@ class TestGypXcode(TestGypBase):
       arguments.extend(['-configuration', self.configuration])
     symroot = kw.get('SYMROOT', '$SRCROOT/build')
     if symroot:
-      arguments.append('SYMROOT='+symroot)
+      arguments.append(f'SYMROOT={symroot}')
     kw['arguments'] = arguments
 
     # Work around spurious stderr output from Xcode 4, http://crbug.com/181012
@@ -1107,6 +1086,7 @@ class TestGypXcode(TestGypBase):
                        'Writing diagnostic log' not in a and
                        'Logs/Test/' not in a]
       return match(actual, expected)
+
     kw['match'] = match_filter_xcode
 
     return self.run(program=self.build_tool, **kw)
@@ -1147,12 +1127,12 @@ class TestGypXcode(TestGypBase):
     prefixes and suffixes to a platform-independent library base name.
     """
     result = []
-    chdir = kw.get('chdir')
-    if chdir:
+    if chdir := kw.get('chdir'):
       result.append(chdir)
     configuration = self.configuration_dirname()
-    result.extend(['build', configuration])
-    result.append(self.built_file_basename(name, type, **kw))
+    result.extend(
+        ['build', configuration,
+         self.built_file_basename(name, type, **kw)])
     return self.workpath(*result)
 
 
@@ -1193,11 +1173,9 @@ class TestGypXcodeNinja(TestGypXcode):
 
   def built_file_path(self, name, type=None, **kw):
     result = []
-    chdir = kw.get('chdir')
-    if chdir:
+    if chdir := kw.get('chdir'):
       result.append(chdir)
-    result.append('out')
-    result.append(self.configuration_dirname())
+    result.extend(('out', self.configuration_dirname()))
     subdir = kw.get('subdir')
     if subdir and type != self.SHARED_LIB:
       result.append(subdir)

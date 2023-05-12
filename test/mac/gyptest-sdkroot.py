@@ -26,8 +26,10 @@ if sys.platform == 'darwin':
     DEVNULL = open(os.devnull, 'wb')
     try:
       proc = subprocess.Popen(
-          ['xcodebuild', '-version', '-sdk', 'macosx' + sdk, 'Path'],
-          stdout=subprocess.PIPE, stderr=DEVNULL)
+          ['xcodebuild', '-version', '-sdk', f'macosx{sdk}', 'Path'],
+          stdout=subprocess.PIPE,
+          stderr=DEVNULL,
+      )
       return proc.communicate()[0].rstrip('\n')
     finally:
       DEVNULL.close()
@@ -35,8 +37,7 @@ if sys.platform == 'darwin':
   def SelectSDK():
     """Select the oldest SDK installed (greater than 10.6)."""
     for sdk in ['10.6', '10.7', '10.8', '10.9']:
-      path = GetSDKPath(sdk)
-      if path:
+      if path := GetSDKPath(sdk):
         return True, sdk, path
     return False, '', ''
 

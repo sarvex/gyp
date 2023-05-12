@@ -8,6 +8,7 @@
 Verifies simple actions when using the default build target.
 """
 
+
 import TestGyp
 
 test = TestGyp.TestGyp(workdir='workarea_default')
@@ -46,10 +47,7 @@ Hello from make-prog1.py
 Hello from make-prog2.py
 """
 
-if test.format == 'xcode':
-  chdir = 'relocate/src/subdir1'
-else:
-  chdir = 'relocate/src'
+chdir = 'relocate/src/subdir1' if test.format == 'xcode' else 'relocate/src'
 test.run_built_executable('program', chdir=chdir, stdout=expect)
 
 
@@ -58,10 +56,7 @@ test.must_match('relocate/src/subdir2/file.out', "Hello from make-file.py\n")
 
 expect = "Hello from generate_main.py\n"
 
-if test.format == 'xcode':
-  chdir = 'relocate/src/subdir3'
-else:
-  chdir = 'relocate/src'
+chdir = 'relocate/src/subdir3' if test.format == 'xcode' else 'relocate/src'
 test.run_built_executable('null_input', chdir=chdir, stdout=expect)
 
 

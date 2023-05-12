@@ -8,4 +8,4 @@ import os
 import sys
 
 outfile = sys.argv[1]
-open(outfile, 'w').write('const char kFoo[] = "%s";' % sys.argv[2])
+open(outfile, 'w').write(f'const char kFoo[] = "{sys.argv[2]}";')

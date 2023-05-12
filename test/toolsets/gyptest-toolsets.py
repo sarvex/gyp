@@ -7,6 +7,7 @@
 """
 Verifies that toolsets are correctly applied
 """
+
 import os
 import sys
 import TestGyp
@@ -21,7 +22,7 @@ if sys.platform.startswith('linux'):
     test.run_gyp('toolsets.gyp')
   finally:
     os.environ.clear()
-    os.environ.update(oldenv)
+    os.environ |= oldenv
 
   test.build('toolsets.gyp', test.ALL)
 

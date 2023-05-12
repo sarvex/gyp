@@ -8,6 +8,7 @@
 Verifies use of include_dirs when using the default build target.
 """
 
+
 import TestGyp
 
 test = TestGyp.TestGyp()
@@ -27,11 +28,7 @@ Hello from shadow2/shadow.h
 """
 test.run_built_executable('includes', stdout=expect, chdir='relocate/src')
 
-if test.format == 'xcode':
-  chdir='relocate/src/subdir'
-else:
-  chdir='relocate/src'
-
+chdir = 'relocate/src/subdir' if test.format == 'xcode' else 'relocate/src'
 expect = """\
 Hello from subdir/subdir_includes.c
 Hello from subdir/inc.h

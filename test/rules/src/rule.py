@@ -5,8 +5,8 @@
 
 import sys
 
-f = open(sys.argv[1] + ".cc", "w")
-f.write("""\
+with open(f"{sys.argv[1]}.cc", "w") as f:
+    f.write("""\
 #include <stdio.h>
 
 int main() {
@@ -14,4 +14,3 @@ int main() {
   return 0;
 }
 """ % sys.argv[1])
-f.close()

@@ -185,8 +185,7 @@ def SourceTreeAndPathFromPath(input_path):
     'path'         (None, 'path')
   """
 
-  source_group_match = _path_leading_variable.match(input_path)
-  if source_group_match:
+  if source_group_match := _path_leading_variable.match(input_path):
     source_tree = source_group_match.group(1)
     output_path = source_group_match.group(3)  # This may be None.
   else:
@@ -324,8 +323,7 @@ class XCObject(object):
           that._properties[key] = new_value
         else:
           that._properties[key] = value
-      elif isinstance(value, str) or isinstance(value, unicode) or \
-           isinstance(value, int):
+      elif isinstance(value, (str, unicode, int)):
         that._properties[key] = value
       elif isinstance(value, list):
         if is_strong:
@@ -341,13 +339,13 @@ class XCObject(object):
       elif isinstance(value, dict):
         # dicts are never strong.
         if is_strong:
-          raise TypeError('Strong dict for key ' + key + ' in ' + \
-                          self.__class__.__name__)
+          raise TypeError(f'Strong dict for key {key} in {self.__class__.__name__}')
         else:
           that._properties[key] = value.copy()
       else:
-        raise TypeError('Unexpected type ' + value.__class__.__name__ + \
-                        ' for key ' + key + ' in ' + self.__class__.__name__)
+        raise TypeError(
+            f'Unexpected type {value.__class__.__name__} for key {key} in {self.__class__.__name__}'
+        )
 
     return that
 
@@ -363,10 +361,10 @@ class XCObject(object):
     # being raised for the property that should be present, which seems more
     # appropriate than NotImplementedError in this case.
     if 'name' in self._properties or \
-        ('name' in self._schema and self._schema['name'][3]):
+          ('name' in self._schema and self._schema['name'][3]):
       return self._properties['name']
 
-    raise NotImplementedError(self.__class__.__name__ + ' must implement Name')
+    raise NotImplementedError(f'{self.__class__.__name__} must implement Name')
 
   def Comment(self):
     """Return a comment string for the object.
@@ -466,9 +464,8 @@ class XCObject(object):
       if descendant.id in ids:
         other = ids[descendant.id]
         raise KeyError(
-              'Duplicate ID %s, objects "%s" and "%s" in "%s"' % \
-              (descendant.id, str(descendant._properties),
-               str(other._properties), self._properties['rootObject'].Name()))
+            f"""Duplicate ID {descendant.id}, objects "{str(descendant._properties)}" and "{str(other._properties)}" in "{self._properties['rootObject'].Name()}\""""
+        )
       ids[descendant.id] = descendant
 
   def Children(self):
@@ -476,7 +473,7 @@ class XCObject(object):
 
     children = []
     for property, attributes in self._schema.iteritems():
-      (is_list, property_type, is_strong) = attributes[0:3]
+      (is_list, property_type, is_strong) = attributes[:3]
       if is_strong and property in self._properties:
         if not is_list:
           children.append(self._properties[property])
@@ -497,9 +494,7 @@ class XCObject(object):
 
   def PBXProjectAncestor(self):
     # The base case for recursion is defined at PBXProject.PBXProjectAncestor.
-    if self.parent:
-      return self.parent.PBXProjectAncestor()
-    return None
+    return self.parent.PBXProjectAncestor() if self.parent else None
 
   def _EncodeComment(self, comment):
     """Encodes a comment to be placed in the project file output, mimicing
@@ -525,9 +520,7 @@ class XCObject(object):
     # replacement from the class' _encode_transforms array.
     if char == '\\':
       return '\\\\'
-    if char == '"':
-      return '\\"'
-    return self._encode_transforms[ord(char)]
+    return '\\"' if char == '"' else self._encode_transforms[ord(char)]
 
   def _EncodeString(self, value):
     """Encodes a string to be placed in the project file output, mimicing
@@ -566,7 +559,7 @@ class XCObject(object):
     if _unquoted.search(value) and not _quoted.search(value):
       return value
 
-    return '"' + _escaped.sub(self._EncodeTransform, value) + '"'
+    return f'"{_escaped.sub(self._EncodeTransform, value)}"'
 
   def _XCPrint(self, file, tabs, line):
     file.write('\t' * tabs + line)
@@ -614,25 +607,25 @@ class XCObject(object):
         else:
           printable += self._EncodeString(value[0])
       else:
-        printable = '(' + sep
+        printable = f'({sep}'
         for item in value:
           printable += element_tabs + \
-                       self._XCPrintableValue(tabs + 1, item, flatten_list) + \
-                       ',' + sep
-        printable += end_tabs + ')'
+                         self._XCPrintableValue(tabs + 1, item, flatten_list) + \
+                         ',' + sep
+        printable += f'{end_tabs})'
     elif isinstance(value, dict):
       printable = '{' + sep
       for item_key, item_value in sorted(value.iteritems()):
         printable += element_tabs + \
-            self._XCPrintableValue(tabs + 1, item_key, flatten_list) + ' = ' + \
-            self._XCPrintableValue(tabs + 1, item_value, flatten_list) + ';' + \
-            sep
+              self._XCPrintableValue(tabs + 1, item_key, flatten_list) + ' = ' + \
+              self._XCPrintableValue(tabs + 1, item_value, flatten_list) + ';' + \
+              sep
       printable += end_tabs + '}'
     else:
-      raise TypeError("Can't make " + value.__class__.__name__ + ' printable')
+      raise TypeError(f"Can't make {value.__class__.__name__} printable")
 
     if comment != None:
-      printable += ' ' + self._EncodeComment(comment)
+      printable += f' {self._EncodeComment(comment)}'
 
     return printable
 
@@ -754,42 +747,37 @@ class XCObject(object):
 
     for property, value in properties.iteritems():
       # Make sure the property is in the schema.
-      if not property in self._schema:
-        raise KeyError(property + ' not in ' + self.__class__.__name__)
+      if property not in self._schema:
+        raise KeyError(f'{property} not in {self.__class__.__name__}')
 
       # Make sure the property conforms to the schema.
-      (is_list, property_type, is_strong) = self._schema[property][0:3]
+      (is_list, property_type, is_strong) = self._schema[property][:3]
       if is_list:
         if value.__class__ != list:
           raise TypeError(
-                property + ' of ' + self.__class__.__name__ + \
-                ' must be list, not ' + value.__class__.__name__)
+              f'{property} of {self.__class__.__name__} must be list, not {value.__class__.__name__}'
+          )
         for item in value:
-          if not isinstance(item, property_type) and \
-             not (item.__class__ == unicode and property_type == str):
+          if not isinstance(item, property_type) and (item.__class__ != unicode
+                                                      or property_type != str):
             # Accept unicode where str is specified.  str is treated as
             # UTF-8-encoded.
             raise TypeError(
-                  'item of ' + property + ' of ' + self.__class__.__name__ + \
-                  ' must be ' + property_type.__name__ + ', not ' + \
-                  item.__class__.__name__)
-      elif not isinstance(value, property_type) and \
-           not (value.__class__ == unicode and property_type == str):
+                f'item of {property} of {self.__class__.__name__} must be {property_type.__name__}, not {item.__class__.__name__}'
+            )
+      elif not isinstance(value, property_type) and (value.__class__ != unicode
+                                                     or property_type != str):
         # Accept unicode where str is specified.  str is treated as
         # UTF-8-encoded.
         raise TypeError(
-              property + ' of ' + self.__class__.__name__ + ' must be ' + \
-              property_type.__name__ + ', not ' + value.__class__.__name__)
+            f'{property} of {self.__class__.__name__} must be {property_type.__name__}, not {value.__class__.__name__}'
+        )
 
       # Checks passed, perform the assignment.
       if do_copy:
         if isinstance(value, XCObject):
-          if is_strong:
-            self._properties[property] = value.Copy()
-          else:
-            self._properties[property] = value
-        elif isinstance(value, str) or isinstance(value, unicode) or \
-             isinstance(value, int):
+          self._properties[property] = value.Copy() if is_strong else value
+        elif isinstance(value, (str, unicode, int)):
           self._properties[property] = value
         elif isinstance(value, list):
           if is_strong:
@@ -804,8 +792,8 @@ class XCObject(object):
           self._properties[property] = value.copy()
         else:
           raise TypeError("Don't know how to copy a " + \
-                          value.__class__.__name__ + ' object for ' + \
-                          property + ' in ' + self.__class__.__name__)
+                            value.__class__.__name__ + ' object for ' + \
+                            property + ' in ' + self.__class__.__name__)
       else:
         self._properties[property] = value
 
@@ -835,20 +823,20 @@ class XCObject(object):
     # TODO(mark): Support ExtendProperty too (and make this call that)?
 
     # Schema validation.
-    if not key in self._schema:
-      raise KeyError(key + ' not in ' + self.__class__.__name__)
+    if key not in self._schema:
+      raise KeyError(f'{key} not in {self.__class__.__name__}')
 
-    (is_list, property_type, is_strong) = self._schema[key][0:3]
+    (is_list, property_type, is_strong) = self._schema[key][:3]
     if not is_list:
-      raise TypeError(key + ' of ' + self.__class__.__name__ + ' must be list')
+      raise TypeError(f'{key} of {self.__class__.__name__} must be list')
     if not isinstance(value, property_type):
-      raise TypeError('item of ' + key + ' of ' + self.__class__.__name__ + \
-                      ' must be ' + property_type.__name__ + ', not ' + \
-                      value.__class__.__name__)
+      raise TypeError(
+          f'item of {key} of {self.__class__.__name__} must be {property_type.__name__}, not {value.__class__.__name__}'
+      )
 
     # If the property doesn't exist yet, create a new empty list to receive the
     # item.
-    if not key in self._properties:
+    if key not in self._properties:
       self._properties[key] = []
 
     # Set up the ownership link.
@@ -866,9 +854,9 @@ class XCObject(object):
     # TODO(mark): A stronger verification mechanism is needed.  Some
     # subclasses need to perform validation beyond what the schema can enforce.
     for property, attributes in self._schema.iteritems():
-      (is_list, property_type, is_strong, is_required) = attributes[0:4]
-      if is_required and not property in self._properties:
-        raise KeyError(self.__class__.__name__ + ' requires ' + property)
+      (is_list, property_type, is_strong, is_required) = attributes[:4]
+      if is_required and property not in self._properties:
+        raise KeyError(f'{self.__class__.__name__} requires {property}')
 
   def _SetDefaultsFromSchema(self):
     """Assign object default values according to the schema.  This will not
@@ -876,14 +864,14 @@ class XCObject(object):
 
     defaults = {}
     for property, attributes in self._schema.iteritems():
-      (is_list, property_type, is_strong, is_required) = attributes[0:4]
-      if is_required and len(attributes) >= 5 and \
-          not property in self._properties:
+      (is_list, property_type, is_strong, is_required) = attributes[:4]
+      if (is_required and len(attributes) >= 5
+          and property not in self._properties):
         default = attributes[4]
 
         defaults[property] = default
 
-    if len(defaults) > 0:
+    if defaults:
       # Use do_copy=True so that each new object gets its own copy of strong
       # objects, lists, and dicts.
       self.UpdateProperties(defaults, do_copy=True)
@@ -914,15 +902,15 @@ class XCHierarchicalElement(XCObject):
   def __init__(self, properties=None, id=None, parent=None):
     # super
     XCObject.__init__(self, properties, id, parent)
-    if 'path' in self._properties and not 'name' in self._properties:
+    if 'path' in self._properties and 'name' not in self._properties:
       path = self._properties['path']
       name = posixpath.basename(path)
       if name != '' and path != name:
         self.SetProperty('name', name)
 
-    if 'path' in self._properties and \
-        (not 'sourceTree' in self._properties or \
-         self._properties['sourceTree'] == '<group>'):
+    if 'path' in self._properties and ('sourceTree' not in self._properties
+                                       or self._properties['sourceTree']
+                                       == '<group>'):
       # If the pathname begins with an Xcode variable like "$(SDKROOT)/", take
       # the variable out and make the path be relative to that variable by
       # assigning the variable name as the sourceTree.
@@ -931,8 +919,7 @@ class XCHierarchicalElement(XCObject):
         self._properties['sourceTree'] = source_tree
       if path != None:
         self._properties['path'] = path
-      if source_tree != None and path is None and \
-         not 'name' in self._properties:
+      if source_tree != None and path is None and 'name' not in self._properties:
         # The path was of the form "$(SDKROOT)" with no path following it.
         # This object is now relative to that variable, so it has no path
         # attribute of its own.  It does, however, keep a name.
@@ -983,11 +970,7 @@ class XCHierarchicalElement(XCObject):
     # children into a top-level group like "Source", the name always goes
     # into the list of hashables without interfering with path components.
     if 'name' in self._properties:
-      # Make it less likely for people to manipulate hashes by following the
-      # pattern of always pushing an object type value onto the list first.
-      hashables.append(self.__class__.__name__ + '.name')
-      hashables.append(self._properties['name'])
-
+      hashables.extend((f'{self.__class__.__name__}.name', self._properties['name']))
     # NOTE: This still has the problem that if an absolute path is encountered,
     # including paths with a sourceTree, they'll still inherit their parents'
     # hashables, even though the paths aren't relative to their parents.  This
@@ -996,9 +979,7 @@ class XCHierarchicalElement(XCObject):
     if path != None:
       components = path.split(posixpath.sep)
       for component in components:
-        hashables.append(self.__class__.__name__ + '.path')
-        hashables.append(component)
-
+        hashables.extend((f'{self.__class__.__name__}.path', component))
     hashables.extend(self._hashables)
 
     return hashables
@@ -1019,9 +1000,7 @@ class XCHierarchicalElement(XCObject):
       return cmp(self.Name(), other.Name())
 
     # Otherwise, sort groups before everything else.
-    if self_type == 'group':
-      return -1
-    return 1
+    return -1 if self_type == 'group' else 1
 
   def CompareRootGroup(self, other):
     # This function should be used only to compare direct children of the
@@ -1042,9 +1021,9 @@ class XCHierarchicalElement(XCObject):
     other_in = isinstance(self, PBXGroup) and other_name in order
     if not self_in and not other_in:
       return self.Compare(other)
-    if self_name in order and not other_name in order:
+    if self_name in order and other_name not in order:
       return -1
-    if other_name in order and not self_name in order:
+    if other_name in order and self_name not in order:
       return 1
 
     # If both groups are in the listed order, go by the defined order.
@@ -1052,9 +1031,7 @@ class XCHierarchicalElement(XCObject):
     other_index = order.index(other_name)
     if self_index < other_index:
       return -1
-    if self_index > other_index:
-      return 1
-    return 0
+    return 1 if self_index > other_index else 0
 
   def PathFromSourceTreeAndPath(self):
     # Turn the object's sourceTree and path properties into a single flat
@@ -1067,10 +1044,7 @@ class XCHierarchicalElement(XCObject):
     if 'path' in self._properties:
       components.append(self._properties['path'])
 
-    if len(components) > 0:
-      return posixpath.join(*components)
-
-    return None
+    return posixpath.join(*components) if components else None
 
   def FullPath(self):
     # Returns a full path to self relative to the project file, or relative
@@ -1081,13 +1055,11 @@ class XCHierarchicalElement(XCObject):
     xche = self
     path = None
     while isinstance(xche, XCHierarchicalElement) and \
-          (path is None or \
-           (not path.startswith('/') and not path.startswith('$'))):
+            (path is None or \
+             (not path.startswith('/') and not path.startswith('$'))):
       this_path = xche.PathFromSourceTreeAndPath()
-      if this_path != None and path != None:
-        path = posixpath.join(this_path, path)
-      elif this_path != None:
-        path = this_path
+      if this_path != None:
+        path = posixpath.join(this_path, path) if path != None else this_path
       xche = xche.parent
 
     return path
@@ -1142,7 +1114,7 @@ class PBXGroup(XCHierarchicalElement):
     child_path = child.PathFromSourceTreeAndPath()
     if child_path:
       if child_path in self._children_by_path:
-        raise ValueError('Found multiple children with path ' + child_path)
+        raise ValueError(f'Found multiple children with path {child_path}')
       self._children_by_path[child_path] = child
 
     if isinstance(child, PBXVariantGroup):
@@ -1150,8 +1122,8 @@ class PBXGroup(XCHierarchicalElement):
       key = (child_name, child_path)
       if key in self._variant_children_by_name_and_path:
         raise ValueError('Found multiple PBXVariantGroup children with ' + \
-                         'name ' + str(child_name) + ' and path ' + \
-                         str(child_path))
+                           'name ' + str(child_name) + ' and path ' + \
+                           str(child_path))
       self._variant_children_by_name_and_path[key] = child
 
   def AppendChild(self, child):
@@ -1170,23 +1142,20 @@ class PBXGroup(XCHierarchicalElement):
     #
     # TODO(mark): Maybe this should raise an error if more than one child is
     # present with the same name.
-    if not 'children' in self._properties:
+    if 'children' not in self._properties:
       return None
 
-    for child in self._properties['children']:
-      if child.Name() == name:
-        return child
-
-    return None
+    return next(
+        (child
+         for child in self._properties['children'] if child.Name() == name),
+        None,
+    )
 
   def GetChildByPath(self, path):
     if not path:
       return None
 
-    if path in self._children_by_path:
-      return self._children_by_path[path]
-
-    return None
+    return self._children_by_path[path] if path in self._children_by_path else None
 
   def GetChildByRemoteObject(self, remote_object):
     # This method is a little bit esoteric.  Given a remote_object, which
@@ -1197,7 +1166,7 @@ class PBXGroup(XCHierarchicalElement):
     # This function might benefit from a dict optimization as GetChildByPath
     # for some workloads, but profiling shows that it's not currently a
     # problem.
-    if not 'children' in self._properties:
+    if 'children' not in self._properties:
       return None
 
     for child in self._properties['children']:
@@ -1228,27 +1197,16 @@ class PBXGroup(XCHierarchicalElement):
     all other paths, a "normal" PBXFileReference will be returned.
     """
 
-    # Adding or getting a directory?  Directories end with a trailing slash.
-    is_dir = False
-    if path.endswith('/'):
-      is_dir = True
+    is_dir = bool(path.endswith('/'))
     path = posixpath.normpath(path)
     if is_dir:
-      path = path + '/'
+      path = f'{path}/'
 
-    # Adding or getting a variant?  Variants are files inside directories
-    # with an ".lproj" extension.  Xcode uses variants for localization.  For
-    # a variant path/to/Language.lproj/MainMenu.nib, put a variant group named
-    # MainMenu.nib inside path/to, and give it a variant named Language.  In
-    # this example, grandparent would be set to path/to and parent_root would
-    # be set to Language.
-    variant_name = None
     parent = posixpath.dirname(path)
     grandparent = posixpath.dirname(parent)
     parent_basename = posixpath.basename(parent)
     (parent_root, parent_ext) = posixpath.splitext(parent_basename)
-    if parent_ext == '.lproj':
-      variant_name = parent_root
+    variant_name = parent_root if parent_ext == '.lproj' else None
     if grandparent == '':
       grandparent = None
 
@@ -1257,18 +1215,18 @@ class PBXGroup(XCHierarchicalElement):
 
     path_split = path.split(posixpath.sep)
     if len(path_split) == 1 or \
-       ((is_dir or variant_name != None) and len(path_split) == 2) or \
-       not hierarchical:
+         ((is_dir or variant_name != None) and len(path_split) == 2) or \
+         not hierarchical:
       # The PBXFileReference or PBXVariantGroup will be added to or gotten from
       # this PBXGroup, no recursion necessary.
       if variant_name is None:
         # Add or get a PBXFileReference.
         file_ref = self.GetChildByPath(path)
-        if file_ref != None:
-          assert file_ref.__class__ == PBXFileReference
-        else:
+        if file_ref is None:
           file_ref = PBXFileReference({'path': path})
           self.AppendChild(file_ref)
+        else:
+          assert file_ref.__class__ == PBXFileReference
       else:
         # Add or get a PBXVariantGroup.  The variant group name is the same
         # as the basename (MainMenu.nib in the example above).  grandparent
@@ -1279,12 +1237,12 @@ class PBXGroup(XCHierarchicalElement):
             variant_group_name, grandparent)
         variant_path = posixpath.sep.join(path_split[-2:])
         variant_ref = variant_group_ref.GetChildByPath(variant_path)
-        if variant_ref != None:
-          assert variant_ref.__class__ == PBXFileReference
-        else:
+        if variant_ref is None:
           variant_ref = PBXFileReference({'name': variant_name,
                                           'path': variant_path})
           variant_group_ref.AppendChild(variant_ref)
+        else:
+          assert variant_ref.__class__ == PBXFileReference
         # The caller is interested in the variant group, not the specific
         # variant file.
         file_ref = variant_group_ref
@@ -1295,11 +1253,11 @@ class PBXGroup(XCHierarchicalElement):
       # path component.
       next_dir = path_split[0]
       group_ref = self.GetChildByPath(next_dir)
-      if group_ref != None:
-        assert group_ref.__class__ == PBXGroup
-      else:
+      if group_ref is None:
         group_ref = PBXGroup({'path': next_dir})
         self.AppendChild(group_ref)
+      else:
+        assert group_ref.__class__ == PBXGroup
       return group_ref.AddOrGetFileByPath(posixpath.sep.join(path_split[1:]),
                                           hierarchical)
 
@@ -1351,7 +1309,7 @@ class PBXGroup(XCHierarchicalElement):
     # PBXVariantGroup, should not participate in reparenting in the same way:
     # reparenting by merging different object types would be wrong.
     while len(self._properties['children']) == 1 and \
-          self._properties['children'][0].__class__ == PBXGroup:
+            self._properties['children'][0].__class__ == PBXGroup:
       # Loop to take over the innermost only-child group possible.
 
       child = self._properties['children'][0]
@@ -1363,8 +1321,8 @@ class PBXGroup(XCHierarchicalElement):
       self._properties = child._properties
       self._children_by_path = child._children_by_path
 
-      if not 'sourceTree' in self._properties or \
-         self._properties['sourceTree'] == '<group>':
+      if ('sourceTree' not in self._properties
+          or self._properties['sourceTree'] == '<group>'):
         # The child was relative to its parent.  Fix up the path.  Note that
         # children with a sourceTree other than "<group>" are not relative to
         # their parents, so no path fix-up is needed in that case.
@@ -1384,10 +1342,10 @@ class PBXGroup(XCHierarchicalElement):
       # parent didn't have a name but the child did, let the child's name
       # live on.  If the name attribute seems unnecessary now, get rid of it.
       if 'name' in old_properties and old_properties['name'] != None and \
-         old_properties['name'] != self.Name():
+           old_properties['name'] != self.Name():
         self._properties['name'] = old_properties['name']
       if 'name' in self._properties and 'path' in self._properties and \
-         self._properties['name'] == self._properties['path']:
+           self._properties['name'] == self._properties['path']:
         del self._properties['name']
 
       # Notify all children of their new parent.
@@ -1467,9 +1425,9 @@ class PBXFileReference(XCFileLikeElement, XCContainerPortal, XCRemoteObject):
     else:
       is_dir = False
 
-    if 'path' in self._properties and \
-        not 'lastKnownFileType' in self._properties and \
-        not 'explicitFileType' in self._properties:
+    if ('path' in self._properties
+        and 'lastKnownFileType' not in self._properties
+        and 'explicitFileType' not in self._properties):
       # TODO(mark): This is the replacement for a replacement for a quick hack.
       # It is no longer incredibly sucky, but this list needs to be extended.
       extension_map = {
@@ -1575,7 +1533,7 @@ class XCBuildConfiguration(XCObject):
     self._properties['buildSettings'][key] = value
 
   def AppendBuildSetting(self, key, value):
-    if not key in self._properties['buildSettings']:
+    if key not in self._properties['buildSettings']:
       self._properties['buildSettings'][key] = []
     self._properties['buildSettings'][key].append(value)
 
@@ -1643,10 +1601,7 @@ class XCConfigurationList(XCObject):
         elif value != configuration_value:
           return -1
 
-    if not has:
-      return 0
-
-    return 1
+    return 0 if not has else 1
 
   def GetBuildSetting(self, key):
     """Gets the build setting for key.
@@ -1663,9 +1618,8 @@ class XCConfigurationList(XCObject):
       configuration_value = configuration.GetBuildSetting(key)
       if value is None:
         value = configuration_value
-      else:
-        if value != configuration_value:
-          raise ValueError('Variant values for ' + key)
+      elif value != configuration_value:
+        raise ValueError(f'Variant values for {key}')
 
     return value
 
@@ -1773,7 +1727,7 @@ class XCBuildPhase(XCObject):
     # be a boolean indicating whether files should be added into hierarchical
     # groups or one single flat group.
     raise NotImplementedError(
-          self.__class__.__name__ + ' must implement FileGroup')
+        f'{self.__class__.__name__} must implement FileGroup')
 
   def _AddPathToDict(self, pbxbuildfile, path):
     """Adds path to the dict tracking paths belonging to this build phase.
@@ -1782,7 +1736,7 @@ class XCBuildPhase(XCObject):
     """
 
     if path in self._files_by_path:
-      raise ValueError('Found multiple build files with path ' + path)
+      raise ValueError(f'Found multiple build files with path {path}')
     self._files_by_path[path] = pbxbuildfile
 
   def _AddBuildFileToDicts(self, pbxbuildfile, path=None):
@@ -1811,22 +1765,19 @@ class XCBuildPhase(XCObject):
     the PBXBuildFile if it is already present in the list of children.
     """
 
-    xcfilelikeelement = pbxbuildfile._properties['fileRef']
-
     paths = []
-    if path != None:
-      # It's best when the caller provides the path.
-      if isinstance(xcfilelikeelement, PBXVariantGroup):
-        paths.append(path)
-    else:
+    xcfilelikeelement = pbxbuildfile._properties['fileRef']
+    if path is None:
       # If the caller didn't provide a path, there can be either multiple
       # paths (PBXVariantGroup) or one.
       if isinstance(xcfilelikeelement, PBXVariantGroup):
-        for variant in xcfilelikeelement._properties['children']:
-          paths.append(variant.FullPath())
+        paths.extend(variant.FullPath()
+                     for variant in xcfilelikeelement._properties['children'])
       else:
         paths.append(xcfilelikeelement.FullPath())
 
+    elif isinstance(xcfilelikeelement, PBXVariantGroup):
+      paths.append(path)
     # Add the paths first, because if something's going to raise, the
     # messages provided by _AddPathToDict are more useful owing to its
     # having access to a real pathname and not just an object's Name().
@@ -1836,9 +1787,8 @@ class XCBuildPhase(XCObject):
     # If another PBXBuildFile references this XCFileLikeElement, there's a
     # problem.
     if xcfilelikeelement in self._files_by_xcfilelikeelement and \
-       self._files_by_xcfilelikeelement[xcfilelikeelement] != pbxbuildfile:
-      raise ValueError('Found multiple build files for ' + \
-                       xcfilelikeelement.Name())
+         self._files_by_xcfilelikeelement[xcfilelikeelement] != pbxbuildfile:
+      raise ValueError(f'Found multiple build files for {xcfilelikeelement.Name()}')
     self._files_by_xcfilelikeelement[xcfilelikeelement] = pbxbuildfile
 
   def AppendBuildFile(self, pbxbuildfile, path=None):
@@ -1982,10 +1932,7 @@ class PBXCopyFilesBuildPhase(XCBuildPhase):
   }
 
   def Name(self):
-    if 'name' in self._properties:
-      return self._properties['name']
-
-    return 'CopyFiles'
+    return self._properties['name'] if 'name' in self._properties else 'CopyFiles'
 
   def FileGroup(self, path):
     return self.PBXProjectAncestor().RootGroupForPath(path)
@@ -1997,8 +1944,7 @@ class PBXCopyFilesBuildPhase(XCBuildPhase):
     specifically, "$(DIR)/path".
     """
 
-    path_tree_match = self.path_tree_re.search(path)
-    if path_tree_match:
+    if path_tree_match := self.path_tree_re.search(path):
       path_tree = path_tree_match.group(1);
       if path_tree in self.path_tree_first_to_subfolder:
         subfolder = self.path_tree_first_to_subfolder[path_tree]
@@ -2046,8 +1992,7 @@ class PBXCopyFilesBuildPhase(XCBuildPhase):
               relative_path = ''
               separator = ''
             if path_tree == 'XPCSERVICES_FOLDER_PATH':
-              relative_path = '$(CONTENTS_FOLDER_PATH)/XPCServices' \
-                              + separator + relative_path
+              relative_path = f'$(CONTENTS_FOLDER_PATH)/XPCServices{separator}{relative_path}'
           else:
             # subfolder = 16 from above
             # The second element of the path is an unrecognized variable.
@@ -2066,7 +2011,7 @@ class PBXCopyFilesBuildPhase(XCBuildPhase):
       relative_path = path[1:]
     else:
       raise ValueError('Can\'t use path %s in a %s' % \
-                       (path, self.__class__.__name__))
+                         (path, self.__class__.__name__))
 
     self._properties['dstPath'] = relative_path
     self._properties['dstSubfolderSpec'] = subfolder
@@ -2126,7 +2071,7 @@ class PBXContainerItemProxy(XCObject):
 
   def __repr__(self):
     props = self._properties
-    name = '%s.gyp:%s' % (props['containerPortal'].Name(), props['remoteInfo'])
+    name = f"{props['containerPortal'].Name()}.gyp:{props['remoteInfo']}"
     return '<%s %r at 0x%x>' % (self.__class__.__name__, name, id(self))
 
   def Name(self):
@@ -2213,16 +2158,15 @@ class XCTarget(XCRemoteObject):
     # property was supplied, set "productName" if it is not present.  Also set
     # the "PRODUCT_NAME" build setting in each configuration, but only if
     # the setting is not present in any build configuration.
-    if 'name' in self._properties:
-      if not 'productName' in self._properties:
-        self.SetProperty('productName', self._properties['name'])
+    if 'name' in self._properties and 'productName' not in self._properties:
+      self.SetProperty('productName', self._properties['name'])
 
-    if 'productName' in self._properties:
-      if 'buildConfigurationList' in self._properties:
-        configs = self._properties['buildConfigurationList']
-        if configs.HasBuildSetting('PRODUCT_NAME') == 0:
-          configs.SetBuildSetting('PRODUCT_NAME',
-                                  self._properties['productName'])
+    if ('productName' in self._properties
+        and 'buildConfigurationList' in self._properties):
+      configs = self._properties['buildConfigurationList']
+      if configs.HasBuildSetting('PRODUCT_NAME') == 0:
+        configs.SetBuildSetting('PRODUCT_NAME',
+                                self._properties['productName'])
 
   def AddDependency(self, other):
     pbxproject = self.PBXProjectAncestor()
@@ -2235,11 +2179,10 @@ class XCTarget(XCRemoteObject):
                                          'remoteInfo':           other.Name()})
       dependency = PBXTargetDependency({'target':      other,
                                         'targetProxy': container})
-      self.AppendProperty('dependencies', dependency)
     else:
       # Add a dependency to a target in a different project file.
       other_project_ref = \
-          pbxproject.AddOrGetProjectReference(other_pbxproject)[1]
+            pbxproject.AddOrGetProjectReference(other_pbxproject)[1]
       container = PBXContainerItemProxy({
             'containerPortal':      other_project_ref,
             'proxyType':            1,
@@ -2248,7 +2191,8 @@ class XCTarget(XCRemoteObject):
           })
       dependency = PBXTargetDependency({'name':        other.Name(),
                                         'targetProxy': container})
-      self.AppendProperty('dependencies', dependency)
+
+    self.AppendProperty('dependencies', dependency)
 
   # Proxy all of these through to the build configuration list.
 
@@ -2337,18 +2281,14 @@ class PBXNativeTarget(XCTarget):
     # super
     XCTarget.__init__(self, properties, id, parent)
 
-    if 'productName' in self._properties and \
-       'productType' in self._properties and \
-       not 'productReference' in self._properties and \
-       self._properties['productType'] in self._product_filetypes:
-      products_group = None
+    if ('productName' in self._properties and 'productType' in self._properties
+        and 'productReference' not in self._properties
+        and self._properties['productType'] in self._product_filetypes):
       pbxproject = self.PBXProjectAncestor()
-      if pbxproject != None:
-        products_group = pbxproject.ProductsGroup()
-
+      products_group = pbxproject.ProductsGroup() if pbxproject != None else None
       if products_group != None:
         (filetype, prefix, suffix) = \
-            self._product_filetypes[self._properties['productType']]
+              self._product_filetypes[self._properties['productType']]
         # Xcode does not have a distinct type for loadable modules that are
         # pure BSD targets (not in a bundle wrapper). GYP allows such modules
         # to be specified by setting a target type to loadable_module without
@@ -2374,24 +2314,23 @@ class PBXNativeTarget(XCTarget):
         # Mac OS X use an .so extension.
         if self._properties['productType'] == 'com.googlecode.gyp.xcode.bundle':
           self._properties['productType'] = \
-              'com.apple.product-type.library.dynamic'
+                'com.apple.product-type.library.dynamic'
           self.SetBuildSetting('MACH_O_TYPE', 'mh_bundle')
           self.SetBuildSetting('DYLIB_CURRENT_VERSION', '')
           self.SetBuildSetting('DYLIB_COMPATIBILITY_VERSION', '')
           if force_extension is None:
             force_extension = suffix[1:]
 
-        if self._properties['productType'] == \
-           'com.apple.product-type-bundle.unit.test' or \
-           self._properties['productType'] == \
-           'com.apple.product-type-bundle.ui-testing':
-          if force_extension is None:
-            force_extension = suffix[1:]
+        if (self._properties['productType'] in [
+            'com.apple.product-type-bundle.unit.test',
+            'com.apple.product-type-bundle.ui-testing',
+        ] and force_extension is None):
+          force_extension = suffix[1:]
 
         if force_extension is not None:
           # If it's a wrapper (bundle), set WRAPPER_EXTENSION.
           # Extension override.
-          suffix = '.' + force_extension
+          suffix = f'.{force_extension}'
           if filetype.startswith('wrapper.'):
             self.SetBuildSetting('WRAPPER_EXTENSION', force_extension)
           else:
@@ -2444,7 +2383,7 @@ class PBXNativeTarget(XCTarget):
         self.SetProperty('productReference', file_ref)
 
   def GetBuildPhaseByType(self, type):
-    if not 'buildPhases' in self._properties:
+    if 'buildPhases' not in self._properties:
       return None
 
     the_phase = None
@@ -2470,9 +2409,14 @@ class PBXNativeTarget(XCTarget):
       insert_at = len(self._properties['buildPhases'])
       for index in xrange(0, len(self._properties['buildPhases'])):
         phase = self._properties['buildPhases'][index]
-        if isinstance(phase, PBXResourcesBuildPhase) or \
-           isinstance(phase, PBXSourcesBuildPhase) or \
-           isinstance(phase, PBXFrameworksBuildPhase):
+        if isinstance(
+            phase,
+            (
+                PBXResourcesBuildPhase,
+                PBXSourcesBuildPhase,
+                PBXFrameworksBuildPhase,
+            ),
+        ):
           insert_at = index
           break
 
@@ -2491,8 +2435,7 @@ class PBXNativeTarget(XCTarget):
       insert_at = len(self._properties['buildPhases'])
       for index in xrange(0, len(self._properties['buildPhases'])):
         phase = self._properties['buildPhases'][index]
-        if isinstance(phase, PBXSourcesBuildPhase) or \
-           isinstance(phase, PBXFrameworksBuildPhase):
+        if isinstance(phase, (PBXSourcesBuildPhase, PBXFrameworksBuildPhase)):
           insert_at = index
           break
 
@@ -2524,15 +2467,14 @@ class PBXNativeTarget(XCTarget):
     static_library_type = 'com.apple.product-type.library.static'
     shared_library_type = 'com.apple.product-type.library.dynamic'
     framework_type = 'com.apple.product-type.framework'
-    if isinstance(other, PBXNativeTarget) and \
-       'productType' in self._properties and \
-       self._properties['productType'] != static_library_type and \
-       'productType' in other._properties and \
-       (other._properties['productType'] == static_library_type or \
-        ((other._properties['productType'] == shared_library_type or \
-          other._properties['productType'] == framework_type) and \
-         ((not other.HasBuildSetting('MACH_O_TYPE')) or
-          other.GetBuildSetting('MACH_O_TYPE') != 'mh_bundle'))):
+    if (isinstance(other, PBXNativeTarget) and 'productType' in self._properties
+        and self._properties['productType'] != static_library_type
+        and 'productType' in other._properties
+        and (other._properties['productType'] == static_library_type
+             or other._properties['productType']
+             in [shared_library_type, framework_type] and
+             ((not other.HasBuildSetting('MACH_O_TYPE'))
+              or other.GetBuildSetting('MACH_O_TYPE') != 'mh_bundle'))):
 
       file_ref = other.GetProperty('productReference')
 
@@ -2540,7 +2482,7 @@ class PBXNativeTarget(XCTarget):
       other_pbxproject = other.PBXProjectAncestor()
       if pbxproject != other_pbxproject:
         other_project_product_group = \
-            pbxproject.AddOrGetProjectReference(other_pbxproject)[0]
+              pbxproject.AddOrGetProjectReference(other_pbxproject)[0]
         file_ref = other_project_product_group.GetChildByRemoteObject(file_ref)
 
       self.FrameworksPhase().AppendProperty('files',
@@ -2615,7 +2557,7 @@ class PBXProject(XCContainerPortal):
     return self
 
   def _GroupByName(self, name):
-    if not 'mainGroup' in self._properties:
+    if 'mainGroup' not in self._properties:
       self.SetProperty('mainGroup', PBXGroup())
 
     main_group = self._properties['mainGroup']
@@ -2752,13 +2694,13 @@ class PBXProject(XCContainerPortal):
     still be updated if necessary.
     """
 
-    if not 'projectReferences' in self._properties:
+    if 'projectReferences' not in self._properties:
       self._properties['projectReferences'] = []
 
     product_group = None
     project_ref = None
 
-    if not other_pbxproject in self._other_pbxprojects:
+    if other_pbxproject not in self._other_pbxprojects:
       # This project file isn't yet linked to the other one.  Establish the
       # link.
       product_group = PBXGroup({'name': 'Products'})
@@ -2777,8 +2719,7 @@ class PBXProject(XCContainerPortal):
       # is not necessarily already relative to this project.  Figure out the
       # pathname that this project needs to use to refer to the other one.
       this_path = posixpath.dirname(self.Path())
-      projectDirPath = self.GetProperty('projectDirPath')
-      if projectDirPath:
+      if projectDirPath := self.GetProperty('projectDirPath'):
         if posixpath.isabs(projectDirPath[0]):
           this_path = projectDirPath
         else:
@@ -2799,7 +2740,7 @@ class PBXProject(XCContainerPortal):
 
       # Xcode seems to sort this list case-insensitively
       self._properties['projectReferences'] = \
-          sorted(self._properties['projectReferences'], cmp=lambda x,y:
+            sorted(self._properties['projectReferences'], cmp=lambda x,y:
                  cmp(x['ProjectRef'].Name().lower(),
                      y['ProjectRef'].Name().lower()))
     else:
@@ -2824,11 +2765,12 @@ class PBXProject(XCContainerPortal):
     # to inherit a unique 'SYMROOT' attribute from its parent, if it doesn't
     # define an explicit value for 'SYMROOT'.
     symroots = self._DefinedSymroots(target)
-    for s in self._DefinedSymroots(target):
-      if (s is not None and not self._IsUniqueSymrootForTarget(s) or
-          s is None and not inherit_unique_symroot):
-        return False
-    return True if symroots else inherit_unique_symroot
+    return next(
+        (False for s in self._DefinedSymroots(target)
+         if (s is not None and not self._IsUniqueSymrootForTarget(s)
+             or s is None and not inherit_unique_symroot)),
+        True if symroots else inherit_unique_symroot,
+    )
 
   def _DefinedSymroots(self, target):
     # Returns all values for the 'SYMROOT' attribute defined in all
@@ -2844,18 +2786,14 @@ class PBXProject(XCContainerPortal):
         symroots.add(setting['SYMROOT'])
       else:
         symroots.add(None)
-    if len(symroots) == 1 and None in symroots:
-      return set()
-    return symroots
+    return set() if len(symroots) == 1 and None in symroots else symroots
 
   def _IsUniqueSymrootForTarget(self, symroot):
     # This method returns True if all configurations in target contain a
     # 'SYMROOT' attribute that is unique for the given target. A value is
     # unique, if the Xcode macro '$SRCROOT' appears in it in any form.
     uniquifier = ['$SRCROOT', '$(SRCROOT)']
-    if any(x in symroot for x in uniquifier):
-      return True
-    return False
+    return any((x in symroot for x in uniquifier))
 
   def _SetUpProductReferences(self, other_pbxproject, product_group,
                               project_ref):
@@ -2976,17 +2914,17 @@ class XCProjectFile(XCObject):
       if object == self:
         continue
       class_name = object.__class__.__name__
-      if not class_name in objects_by_class:
+      if class_name not in objects_by_class:
         objects_by_class[class_name] = []
       objects_by_class[class_name].append(object)
 
     for class_name in sorted(objects_by_class):
       self._XCPrint(file, 0, '\n')
-      self._XCPrint(file, 0, '/* Begin ' + class_name + ' section */\n')
+      self._XCPrint(file, 0, f'/* Begin {class_name}' + ' section */\n')
       for object in sorted(objects_by_class[class_name],
                            cmp=lambda x, y: cmp(x.id, y.id)):
         object.Print(file)
-      self._XCPrint(file, 0, '/* End ' + class_name + ' section */\n')
+      self._XCPrint(file, 0, f'/* End {class_name}' + ' section */\n')
 
     if self._should_print_single_line:
       self._XCPrint(file, 0, '}; ')

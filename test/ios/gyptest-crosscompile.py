@@ -8,6 +8,7 @@
 Verifies that tools are built correctly.
 """
 
+
 import TestGyp
 import TestMac
 
@@ -23,7 +24,7 @@ if sys.platform == 'darwin':
     test.run_gyp('test-crosscompile.gyp', chdir='app-bundle')
   finally:
     os.environ.clear()
-    os.environ.update(oldenv)
+    os.environ |= oldenv
 
   test.set_configuration('Default')
   test.build('test-crosscompile.gyp', 'TestHost', chdir='app-bundle')
